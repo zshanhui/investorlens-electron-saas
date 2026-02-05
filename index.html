@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self' https://cdn.jsdelivr.net; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Research</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-main">
+        <div>
+          <h1>InvestorLens</h1>
+          <p class="subtitle">Built by WuweiLabs · Powered by Yahoo Finance data</p>
+        </div>
+        <button type="button" id="themeToggle" class="theme-toggle" aria-label="Toggle light/dark mode">
+          Dark mode
+        </button>
+      </div>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search symbol or company (e.g. AAPL, Apple)"
+          autocomplete="off" />
+        <button type="button" id="searchBtn">Search</button>
+      </div>
+
+      <section class="quick-tiles" aria-label="Top NASDAQ tech companies">
+        <h2 class="quick-title">Top NASDAQ Tech</h2>
+        <div class="quick-grid">
+          <button class="quick-tile" data-symbol="NVDA">
+            <span class="quick-symbol">NVDA</span>
+            <span class="quick-name">NVIDIA</span>
+          </button>
+          <button class="quick-tile" data-symbol="AAPL">
+            <span class="quick-symbol">AAPL</span>
+            <span class="quick-name">Apple</span>
+          </button>
+          <button class="quick-tile" data-symbol="MSFT">
+            <span class="quick-symbol">MSFT</span>
+            <span class="quick-name">Microsoft</span>
+          </button>
+          <button class="quick-tile" data-symbol="GOOGL">
+            <span class="quick-symbol">GOOGL</span>
+            <span class="quick-name">Alphabet</span>
+          </button>
+          <button class="quick-tile" data-symbol="AMZN">
+            <span class="quick-symbol">AMZN</span>
+            <span class="quick-name">Amazon</span>
+          </button>
+          <button class="quick-tile" data-symbol="META">
+            <span class="quick-symbol">META</span>
+            <span class="quick-name">Meta</span>
+          </button>
+          <button class="quick-tile" data-symbol="TSLA">
+            <span class="quick-symbol">TSLA</span>
+            <span class="quick-name">Tesla</span>
+          </button>
+          <button class="quick-tile" data-symbol="AVGO">
+            <span class="quick-symbol">AVGO</span>
+            <span class="quick-name">Broadcom</span>
+          </button>
+          <button class="quick-tile" data-symbol="AMD">
+            <span class="quick-symbol">AMD</span>
+            <span class="quick-name">AMD</span>
+          </button>
+          <button class="quick-tile" data-symbol="NFLX">
+            <span class="quick-symbol">NFLX</span>
+            <span class="quick-name">Netflix</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="quick-tiles" aria-label="Popular index ETFs">
+        <h2 class="quick-title">Major Index ETFs</h2>
+        <div class="quick-grid">
+          <button class="etf-tile" data-symbol="SPY">
+            <span class="quick-symbol">SPY</span>
+            <span class="quick-name">S&amp;P 500 ETF</span>
+          </button>
+          <button class="etf-tile" data-symbol="VOO">
+            <span class="quick-symbol">VOO</span>
+            <span class="quick-name">Vanguard S&amp;P 500</span>
+          </button>
+          <button class="etf-tile" data-symbol="VTI">
+            <span class="quick-symbol">VTI</span>
+            <span class="quick-name">Vanguard Total Stock Market</span>
+          </button>
+          <button class="etf-tile" data-symbol="QQQ">
+            <span class="quick-symbol">QQQ</span>
+            <span class="quick-name">Nasdaq 100 ETF</span>
+          </button>
+        </div>
+      </section>
+    </header>
+
+    <main class="main">
+      <section class="results-section" id="resultsSection">
+        <h2>Search Results</h2>
+        <div id="resultsList" class="results-list"></div>
+        <p id="resultsHint" class="hint">Enter a symbol or company name and click Search.</p>
+      </section>
+
+      <section class="detail-section" id="detailSection">
+        <h2>Details</h2>
+
+        <div class="detail-tabs" role="tablist">
+          <button id="tabQuote" class="detail-tab active" type="button">Quote &amp; History</button>
+          <button id="tabFinancials" class="detail-tab detail-tab-stock" type="button">Financials</button>
+          <button id="tabEdgar" class="detail-tab detail-tab-stock" type="button">SEC Filings</button>
+          <button id="tabEtf" class="detail-tab detail-tab-etf hidden" type="button">ETF</button>
+        </div>
+
+        <div id="quotePanel" class="quote-panel hidden" role="tabpanel" aria-labelledby="tabQuote">
+          <div class="quote-header">
+            <span id="quoteSymbol" class="symbol"></span>
+            <span id="quoteName" class="name"></span>
+          </div>
+          <div class="quote-price-row">
+            <span id="quotePrice" class="price"></span>
+            <span id="quoteChange" class="change"></span>
+          </div>
+          <div id="historyChartContainer" class="history-chart-container">
+            <h3 class="history-chart-title">Price History (1Y)</h3>
+            <div id="historyChart" class="history-chart"></div>
+          </div>
+          <div class="quote-meta" id="quoteMeta"></div>
+          <div class="historical-section">
+            <h3>Recent History</h3>
+            <div id="historyTableWrap" class="table-wrap">
+              <table id="historyTable">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Open</th>
+                    <th>High</th>
+                    <th>Low</th>
+                    <th>Close</th>
+                    <th>Volume</th>
+                  </tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="financialsPanel" class="financials-panel hidden" role="tabpanel" aria-labelledby="tabFinancials">
+          <h3>Financial Statements</h3>
+          <p id="financialsStatus" class="hint">Financials will load when you select a symbol.</p>
+
+          <div class="financials-subtabs">
+            <button id="subtabIncome" class="detail-subtab active" type="button">Income Statement</button>
+            <button id="subtabBalance" class="detail-subtab" type="button">Balance Sheet</button>
+          </div>
+
+          <div id="incomeTableWrap" class="table-wrap">
+            <table id="incomeTable">
+              <thead id="incomeHead"></thead>
+              <tbody id="incomeBody"></tbody>
+            </table>
+          </div>
+
+          <div id="balanceTableWrap" class="table-wrap hidden">
+            <table id="balanceTable">
+              <thead id="balanceHead"></thead>
+              <tbody id="balanceBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="etfPanel" class="etf-panel hidden" role="tabpanel" aria-labelledby="tabEtf">
+          <h3>ETF Details</h3>
+          <p id="etfStatus" class="hint">ETF data will load when you open this tab.</p>
+          <div id="etfExpenseSection" class="etf-section hidden">
+            <h4 class="etf-section-title">Expense ratio</h4>
+            <p id="etfExpenseValue" class="etf-value"></p>
+          </div>
+          <div id="etfHoldingsSection" class="etf-section hidden">
+            <h4 class="etf-section-title">Top holdings</h4>
+            <div id="etfHoldingsList" class="etf-holdings-list"></div>
+          </div>
+          <div id="etfComingSoon" class="etf-coming-soon hidden">
+            <p>More ETF data coming soon.</p>
+          </div>
+        </div>
+
+        <div id="edgarPanel" class="edgar-panel hidden" role="tabpanel" aria-labelledby="tabEdgar">
+          <h3>SEC EDGAR Filings</h3>
+          <p id="edgarHint" class="hint">Search for a U.S. public company by ticker or name to list SEC filings and
+            download PDFs.</p>
+          <div class="edgar-search-bar">
+            <input type="text" id="edgarSearchInput" placeholder="Ticker or company name (e.g. AAPL, Apple)"
+              autocomplete="off" />
+            <button type="button" id="edgarSearchBtn">Search EDGAR</button>
+          </div>
+          <div id="edgarCompanyList" class="edgar-company-list hidden"></div>
+          <div id="edgarSelectedCompany" class="edgar-selected hidden"></div>
+          <div class="edgar-form-filter">
+            <label>Form types:</label>
+            <select id="edgarFormFilter">
+              <option value="10-K,10-Q">10-K, 10-Q</option>
+              <option value="10-K">10-K only</option>
+              <option value="10-Q">10-Q only</option>
+              <option value="">All filings</option>
+            </select>
+          </div>
+          <div id="edgarFilingsWrap" class="table-wrap hidden">
+            <table id="edgarFilingsTable">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Form</th>
+                  <th>Report date</th>
+                  <th>Description</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="edgarFilingsBody"></tbody>
+            </table>
+          </div>
+          <p id="edgarFilingsHint" class="hint hidden">Select a company to see filings.</p>
+        </div>
+
+        <p id="detailHint" class="hint">Select a symbol from search results to view details.</p>
+      </section>
+    </main>
+
+    <div id="loading" class="loading hidden">Loading…</div>
+    <div id="error" class="error hidden"></div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="renderer.js"></script>
+</body>
+
+</html>

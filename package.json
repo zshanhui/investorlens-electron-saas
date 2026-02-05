@@ -1,0 +1,19 @@
+{
+  "name": "my-electron-app",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "zshanhui",
+  "type": "commonjs",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "yahoo-finance2": "^3.13.0"
+  },
+  "devDependencies": {
+    "electron": "^40.1.0"
+  }
+}
