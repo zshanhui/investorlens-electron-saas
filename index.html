@@ -37,70 +37,12 @@
 
       <section class="quick-tiles" data-i18n-aria-label="quick.ariaNasdaq" aria-label="Top NASDAQ tech companies">
         <h2 class="quick-title" data-i18n="quick.topNasdaq">Top NASDAQ Tech</h2>
-        <div class="quick-grid">
-          <button class="quick-tile" data-symbol="NVDA">
-            <span class="quick-symbol">NVDA</span>
-            <span class="quick-name">NVIDIA</span>
-          </button>
-          <button class="quick-tile" data-symbol="AAPL">
-            <span class="quick-symbol">AAPL</span>
-            <span class="quick-name">Apple</span>
-          </button>
-          <button class="quick-tile" data-symbol="MSFT">
-            <span class="quick-symbol">MSFT</span>
-            <span class="quick-name">Microsoft</span>
-          </button>
-          <button class="quick-tile" data-symbol="GOOGL">
-            <span class="quick-symbol">GOOGL</span>
-            <span class="quick-name">Alphabet</span>
-          </button>
-          <button class="quick-tile" data-symbol="AMZN">
-            <span class="quick-symbol">AMZN</span>
-            <span class="quick-name">Amazon</span>
-          </button>
-          <button class="quick-tile" data-symbol="META">
-            <span class="quick-symbol">META</span>
-            <span class="quick-name">Meta</span>
-          </button>
-          <button class="quick-tile" data-symbol="TSLA">
-            <span class="quick-symbol">TSLA</span>
-            <span class="quick-name">Tesla</span>
-          </button>
-          <button class="quick-tile" data-symbol="AVGO">
-            <span class="quick-symbol">AVGO</span>
-            <span class="quick-name">Broadcom</span>
-          </button>
-          <button class="quick-tile" data-symbol="AMD">
-            <span class="quick-symbol">AMD</span>
-            <span class="quick-name">AMD</span>
-          </button>
-          <button class="quick-tile" data-symbol="NFLX">
-            <span class="quick-symbol">NFLX</span>
-            <span class="quick-name">Netflix</span>
-          </button>
-        </div>
+        <div class="quick-grid" id="nasdaqQuickGrid"></div>
       </section>
 
       <section class="quick-tiles" data-i18n-aria-label="quick.ariaEtfs" aria-label="Popular index ETFs">
         <h2 class="quick-title" data-i18n="quick.majorEtfs">Major Index ETFs</h2>
-        <div class="quick-grid">
-          <button class="etf-tile" data-symbol="SPY">
-            <span class="quick-symbol">SPY</span>
-            <span class="quick-name">S&amp;P 500 ETF</span>
-          </button>
-          <button class="etf-tile" data-symbol="VOO">
-            <span class="quick-symbol">VOO</span>
-            <span class="quick-name">Vanguard S&amp;P 500</span>
-          </button>
-          <button class="etf-tile" data-symbol="VTI">
-            <span class="quick-symbol">VTI</span>
-            <span class="quick-name">Vanguard Total Stock Market</span>
-          </button>
-          <button class="etf-tile" data-symbol="QQQ">
-            <span class="quick-symbol">QQQ</span>
-            <span class="quick-name">Nasdaq 100 ETF</span>
-          </button>
-        </div>
+        <div class="quick-grid" id="etfQuickGrid"></div>
       </section>
     </header>
 
@@ -172,11 +114,11 @@
             <span id="quotePrice" class="price"></span>
             <span id="quoteChange" class="change"></span>
           </div>
-          <div class="quote-updated-row">
-            <span id="quoteUpdated" class="quote-updated"></span>
-          </div>
           <div id="historyChartContainer" class="history-chart-container">
-            <h3 class="history-chart-title" data-i18n="quote.priceHistory">Price History (1Y)</h3>
+            <h3 class="history-chart-title">
+              <span data-i18n="quote.priceHistory">Price History (1Y)</span>
+              <span id="quoteUpdated" class="quote-updated"></span>
+            </h3>
             <div id="historyChart" class="history-chart"></div>
           </div>
           <div class="quote-section">
@@ -306,6 +248,7 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   <script src="i18n.js"></script>
   <script src="js/dom.js"></script>
+  <script src="js/quick-tiles.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/chart.js"></script>
   <script src="js/edgar.js"></script>

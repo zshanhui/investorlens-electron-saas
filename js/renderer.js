@@ -104,7 +104,7 @@ function renderQuoteLastUpdated (result) {
   }
   if (diff < 0) diff = 0
   if (diff > 60) diff = 60
-  App.dom.quoteUpdated.textContent = `Updated ${diff}s ago`
+  App.dom.quoteUpdated.textContent = ` (Updated ${diff}s ago)`
 }
 
 async function doSearch () {
@@ -403,24 +403,29 @@ function showPanel (panel) {
   App.dom.tabFinancials.classList.toggle('active', isFinancials)
   if (App.dom.tabEdgar) App.dom.tabEdgar.classList.toggle('active', isEdgar)
   if (App.dom.tabEtf) App.dom.tabEtf.classList.toggle('active', isEtf)
+
+  if (isQuote && App.state.historyChartInstance) {
+    requestAnimationFrame(() => {
+      App.state.historyChartInstance.resize()
+    })
+  }
 }
 
 App.dom.searchBtn.addEventListener('click', doSearch)
 App.dom.searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch() })
 
-App.dom.quickTiles.forEach((tile) => {
-  tile.addEventListener('click', () => {
-    const symbol = tile.getAttribute('data-symbol')
-    if (symbol) { App.dom.searchInput.value = symbol; selectSymbol(symbol) }
-  })
-})
+function handleQuickTileClick (e) {
+  const tile = e.target.closest('.quick-tile, .etf-tile')
+  if (!tile) return
+  const symbol = tile.getAttribute('data-symbol')
+  if (symbol) {
+    App.dom.searchInput.value = symbol
+    selectSymbol(symbol)
+  }
+}
 
-App.dom.etfTiles.forEach((tile) => {
-  tile.addEventListener('click', () => {
-    const symbol = tile.getAttribute('data-symbol')
-    if (symbol) { App.dom.searchInput.value = symbol; selectSymbol(symbol) }
-  })
-})
+if (App.dom.nasdaqQuickGrid) App.dom.nasdaqQuickGrid.addEventListener('click', handleQuickTileClick)
+if (App.dom.etfQuickGrid) App.dom.etfQuickGrid.addEventListener('click', handleQuickTileClick)
 
 App.dom.tabQuote.addEventListener('click', () => showPanel('quote'))
 
