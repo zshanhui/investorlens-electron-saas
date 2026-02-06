@@ -11,6 +11,11 @@ InvestorLens is a minimalist desktop research tool for quickly exploring stocks 
 - **Financial statements**: Income statement and balance sheet snapshots.
 - **Light / dark themes**: Toggleable red‑and‑gold themed UI for day and night sessions.
 
+<img width="1980" height="1184" alt="Screenshot 2026-02-06 at 10 12 56 PM" src="https://github.com/user-attachments/assets/2f821139-c670-40ac-8d38-2a28eec99c92" />
+<img width="2004" height="1666" alt="Screenshot 2026-02-06 at 10 12 51 PM" src="https://github.com/user-attachments/assets/e1857eec-fa2b-4b40-af53-8aaeeda17fb5" />
+<img width="1996" height="1666" alt="Screenshot 2026-02-06 at 10 12 36 PM" src="https://github.com/user-attachments/assets/a3e8044f-1f7e-45b8-8e91-cd9a1b867853" />
+<img width="2026" height="1658" alt="Screenshot 2026-02-06 at 10 12 30 PM" src="https://github.com/user-attachments/assets/be9c4003-b3f0-46dc-b19a-8b67f8853ad5" />
+
 ### Getting started
 
 ```bash
