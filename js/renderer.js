@@ -55,6 +55,36 @@ function updateDetailTabsForEtf () {
   }
 }
 
+function normalizeSearchItem (item) {
+  if (!item || typeof item !== 'object') return null
+  const symbol = item.symbol || item.ticker || ''
+  if (!symbol) return null
+
+  const type = item.quoteType || item.type || item.assetType || ''
+  const name = item.shortname || item.longname || item.name || item.companyName || ''
+
+  return { symbol, type, name }
+}
+
+function isProbablyEtfQuote (q) {
+  if (!q || typeof q !== 'object') return false
+  if (String(q.quoteType || '').toUpperCase() === 'ETF') return true
+  const name = String(q.shortName || q.longName || q.name || '').toUpperCase()
+  if (name.includes('ETF')) return true
+  return false
+}
+
+function pickQuoteNumber (q, keys) {
+  for (const key of keys) {
+    const val = q[key]
+    if (val != null && val !== '') {
+      const n = Number(val)
+      if (!Number.isNaN(n)) return n
+    }
+  }
+  return null
+}
+
 async function doSearch () {
   const query = App.dom.searchInput.value.trim()
   if (!query) return
@@ -74,7 +104,10 @@ async function doSearch () {
     return
   }
 
-  const items = Array.isArray(result.data) ? result.data : (result.data?.quotes || [])
+  const rawItems = Array.isArray(result.data) ? result.data : (result.data?.quotes || [])
+  const items = rawItems
+    .map(normalizeSearchItem)
+    .filter(Boolean)
   if (!items || items.length === 0) {
     App.dom.resultsHint.textContent = App.t('results.noResults')
     App.dom.resultsHint.classList.remove('hidden')
@@ -87,8 +120,8 @@ async function doSearch () {
     div.className = 'result-item'
     div.innerHTML = `
       <span class="symbol">${App.utils.escapeHtml(item.symbol || '')}</span>
-      <span class="type">${App.utils.escapeHtml(item.quoteType || '')}</span>
-      <span class="name">${App.utils.escapeHtml(item.shortname || item.longname || '')}</span>
+      <span class="type">${App.utils.escapeHtml(item.type || '')}</span>
+      <span class="name">${App.utils.escapeHtml(item.name || '')}</span>
     `
     div.addEventListener('click', () => selectSymbol(item.symbol))
     App.dom.resultsList.appendChild(div)
@@ -138,17 +171,17 @@ async function selectSymbol (symbol) {
     return
   }
 
-  const q = quoteResult.data
-  App.dom.quoteName.textContent = q.shortName || q.longName || symbol
+  const q = quoteResult.data || {}
+  App.dom.quoteName.textContent = q.shortName || q.longName || q.name || symbol
 
-  App.state.currentIsEtf = String(q.quoteType || '').toUpperCase() === 'ETF'
+  App.state.currentIsEtf = isProbablyEtfQuote(q)
   updateDetailTabsForEtf()
 
-  const price = q.regularMarketPrice ?? q.price
+  const price = pickQuoteNumber(q, ['regularMarketPrice', 'price'])
   App.dom.quotePrice.textContent = price != null ? App.utils.formatPrice(price) : '—'
 
-  const change = q.regularMarketChange
-  const changePercent = q.regularMarketChangePercent
+  const change = pickQuoteNumber(q, ['regularMarketChange', 'change'])
+  const changePercent = pickQuoteNumber(q, ['regularMarketChangePercent', 'changesPercentage'])
   App.dom.quoteChange.innerHTML = ''
 
   if (change != null || changePercent != null) {
@@ -164,22 +197,22 @@ async function selectSymbol (symbol) {
   }
 
   const valuationFields = [
-    [App.t('quote.marketCap'), q.marketCap, App.utils.formatNum],
-    [App.t('quote.peTtm'), q.trailingPE, App.utils.formatRatio],
-    [App.t('quote.forwardPe'), q.forwardPE, App.utils.formatRatio],
-    [App.t('quote.pb'), q.priceToBook, App.utils.formatRatio],
-    [App.t('quote.psTtm'), q.priceToSalesTrailing12Months, App.utils.formatRatio]
+    [App.t('quote.marketCap'), pickQuoteNumber(q, ['marketCap']), App.utils.formatNum],
+    [App.t('quote.peTtm'), pickQuoteNumber(q, ['trailingPE', 'pe']), App.utils.formatRatio],
+    [App.t('quote.forwardPe'), pickQuoteNumber(q, ['forwardPE', 'forwardPe']), App.utils.formatRatio],
+    [App.t('quote.pb'), pickQuoteNumber(q, ['priceToBook']), App.utils.formatRatio],
+    [App.t('quote.psTtm'), pickQuoteNumber(q, ['priceToSalesTrailing12Months', 'priceToSalesTTM']), App.utils.formatRatio]
   ]
   App.dom.quoteValuation.innerHTML = valuationFields
     .map(([label, val, fmt]) => `<div class="meta-item"><span class="meta-label">${App.utils.escapeHtml(label)}</span> ${(fmt || App.utils.formatNum)(val)}</div>`)
     .join('')
 
   const movementFields = [
-    [App.t('quote.volume'), q.regularMarketVolume, App.utils.formatNum],
-    [App.t('quote.dayHigh'), q.regularMarketDayHigh, App.utils.formatPrice],
-    [App.t('quote.dayLow'), q.regularMarketDayLow, App.utils.formatPrice],
-    [App.t('quote.w52High'), q.fiftyTwoWeekHigh, App.utils.formatPrice],
-    [App.t('quote.w52Low'), q.fiftyTwoWeekLow, App.utils.formatPrice]
+    [App.t('quote.volume'), pickQuoteNumber(q, ['regularMarketVolume', 'volume']), App.utils.formatNum],
+    [App.t('quote.dayHigh'), pickQuoteNumber(q, ['regularMarketDayHigh', 'dayHigh']), App.utils.formatPrice],
+    [App.t('quote.dayLow'), pickQuoteNumber(q, ['regularMarketDayLow', 'dayLow']), App.utils.formatPrice],
+    [App.t('quote.w52High'), pickQuoteNumber(q, ['fiftyTwoWeekHigh', 'yearHigh']), App.utils.formatPrice],
+    [App.t('quote.w52Low'), pickQuoteNumber(q, ['fiftyTwoWeekLow', 'yearLow']), App.utils.formatPrice]
   ]
   App.dom.quoteMovement.innerHTML = movementFields
     .map(([label, val, fmt]) => `<div class="meta-item"><span class="meta-label">${App.utils.escapeHtml(label)}</span> ${(fmt || App.utils.formatNum)(val)}</div>`)

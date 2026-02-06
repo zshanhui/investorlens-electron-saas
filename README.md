@@ -1,6 +1,6 @@
 ## InvestorLens
 
-InvestorLens is a minimalist desktop research tool for quickly exploring stocks and ETFs. It is built with Electron and Yahoo Finance data, and was vibe coded end‑to‑end inside CursorIDE.
+InvestorLens is a minimalist desktop research tool for quickly exploring stocks and ETFs. It is built with Electron and primarily uses Financial Modeling Prep (FMP) for stock data, with Yahoo Finance as a fallback, and was vibe coded end‑to‑end inside CursorIDE.
 
 ### Features
 
@@ -19,4 +19,18 @@ npm start
 ```
 
 This will launch the InvestorLens Electron app in a desktop window.
+
+### Configuring the FMP API key
+
+InvestorLens uses [Financial Modeling Prep](https://site.financialmodelingprep.com/developer/docs#directory) as the primary stock data provider.
+You need an API key from FMP to use it.
+
+Set the key in your environment before starting the app:
+
+```bash
+export FMP_API_KEY=your_key_here
+npm start
+```
+
+If the FMP API key is missing, invalid, or rate‑limited, the app will automatically fall back to the existing Yahoo Finance integration where possible.
 

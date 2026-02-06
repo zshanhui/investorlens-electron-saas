@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, Notification } = require('electron')
 const fs = require('fs')
 const path = require('path')
+const https = require('https')
 const { pathToFileURL } = require('url')
 const yaml = require('js-yaml')
 
@@ -29,6 +30,267 @@ const loadYahooFinance = async () => {
   const YahooFinance = mod.default
   yahooFinance = new YahooFinance()
   return yahooFinance
+}
+
+// ----- FinancialModelingPrep (FMP) client -----
+
+const FMP_BASE_URL = 'https://financialmodelingprep.com'
+
+function getFmpApiKey () {
+  const key = process.env.FMP_API_KEY
+  if (!key) {
+    return null
+  }
+  return key.trim()
+}
+
+function buildFmpUrl (pathname, params = {}) {
+  const apiKey = getFmpApiKey()
+  if (!apiKey) {
+    throw new Error('FMP API key missing. Please set FMP_API_KEY in your environment.')
+  }
+
+  const url = new URL('/stable/' + pathname.replace(/^\//, ''), FMP_BASE_URL)
+  Object.entries(params).forEach(([k, v]) => {
+    if (v === undefined || v === null || v === '') return
+    url.searchParams.set(k, String(v))
+  })
+  url.searchParams.set('apikey', apiKey)
+  return url.toString()
+}
+
+function callFmpJson (pathname, params = {}) {
+  let fullUrl
+  try {
+    fullUrl = buildFmpUrl(pathname, params)
+  } catch (err) {
+    return Promise.reject(err)
+  }
+
+  return new Promise((resolve, reject) => {
+    const req = https.get(
+      fullUrl,
+      {
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'InvestorLens/1.0 (FMP client)'
+        },
+        timeout: 15000
+      },
+      (res) => {
+        const { statusCode } = res
+        if (statusCode < 200 || statusCode >= 300) {
+          res.resume()
+          if (statusCode === 401 || statusCode === 403) {
+            return reject(new Error('FMP API key missing/invalid (HTTP ' + statusCode + ').'))
+          }
+          if (statusCode === 429) {
+            return reject(new Error('FMP rate limit exceeded. Please try again later.'))
+          }
+          return reject(new Error(`FMP request failed with status ${statusCode}.`))
+        }
+
+        let data = ''
+        res.setEncoding('utf8')
+        res.on('data', (chunk) => {
+          data += chunk
+        })
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data)
+            resolve(json)
+          } catch (err) {
+            reject(new Error('Failed to parse FMP response JSON: ' + (err.message || err)))
+          }
+        })
+      }
+    )
+
+    req.on('error', (err) => {
+      reject(new Error('FMP request error: ' + (err.message || err)))
+    })
+
+    req.on('timeout', () => {
+      req.destroy(new Error('FMP request timed out'))
+    })
+  })
+}
+
+async function fetchFmpSearch (query) {
+  const trimmed = String(query || '').trim()
+  if (!trimmed) return []
+
+  // Use symbol search first; if it returns nothing, try name search.
+  let results = []
+  try {
+    results = await callFmpJson('search-symbol', { query: trimmed })
+  } catch (err) {
+    throw err
+  }
+
+  if (!Array.isArray(results) || results.length === 0) {
+    const byName = await callFmpJson('search-name', { query: trimmed })
+    if (Array.isArray(byName)) results = byName
+  }
+
+  if (!Array.isArray(results)) return []
+
+  // Normalize to a shape the renderer can easily consume.
+  return results.map((item) => ({
+    symbol: item.symbol || item.ticker || '',
+    type: item.type || item.assetType || '',
+    name: item.name || item.companyName || ''
+  })).filter((r) => r.symbol)
+}
+
+async function fetchFmpQuote (symbol) {
+  const sym = String(symbol || '').trim()
+  if (!sym) {
+    throw new Error('Missing symbol')
+  }
+
+  const data = await callFmpJson('quote', { symbol: sym })
+  if (!Array.isArray(data) || data.length === 0) {
+    throw new Error('No FMP quote data for symbol ' + sym)
+  }
+  const q = data[0]
+
+  const price = q.price != null ? Number(q.price) : null
+  const prevClose = q.previousClose != null ? Number(q.previousClose) : null
+  let change = null
+  let changePercent = null
+  if (price != null && prevClose != null && prevClose !== 0) {
+    change = price - prevClose
+    changePercent = (change / prevClose) * 100
+  } else if (q.change != null) {
+    change = Number(q.change)
+  }
+  if (q.changesPercentage != null && changePercent == null) {
+    changePercent = Number(String(q.changesPercentage).replace('%', ''))
+  }
+
+  const isEtf =
+    String(q.type || q.assetType || '').toUpperCase().includes('ETF') ||
+    String(q.name || '').toUpperCase().includes('ETF')
+
+  return {
+    symbol: q.symbol || sym,
+    shortName: q.name || sym,
+    longName: q.name || sym,
+    quoteType: isEtf ? 'ETF' : 'EQUITY',
+    regularMarketPrice: price,
+    price,
+    regularMarketChange: change,
+    regularMarketChangePercent: changePercent,
+    marketCap: q.marketCap != null ? Number(q.marketCap) : null,
+    regularMarketVolume: q.volume != null ? Number(q.volume) : null,
+    regularMarketDayHigh: q.dayHigh != null ? Number(q.dayHigh) : null,
+    regularMarketDayLow: q.dayLow != null ? Number(q.dayLow) : null,
+    fiftyTwoWeekHigh: q.yearHigh != null ? Number(q.yearHigh) : null,
+    fiftyTwoWeekLow: q.yearLow != null ? Number(q.yearLow) : null,
+    trailingPE: q.pe != null ? Number(q.pe) : null,
+    priceToBook: q.priceAvg50 != null && q.priceAvg50 !== 0 && q.price != null
+      ? Number(q.price) / Number(q.priceAvg50)
+      : null,
+    priceToSalesTrailing12Months: q.priceToSalesTTM != null ? Number(q.priceToSalesTTM) : null
+  }
+}
+
+async function fetchFmpHistorical (symbol, from, to) {
+  const sym = String(symbol || '').trim()
+  if (!sym) throw new Error('Missing symbol')
+
+  const json = await callFmpJson('historical-price-eod/full', {
+    symbol: sym,
+    from,
+    to
+  })
+
+  const rows = Array.isArray(json?.historical) ? json.historical : (Array.isArray(json) ? json : [])
+  if (!Array.isArray(rows)) return []
+
+  return rows
+    .map((r) => ({
+      date: r.date,
+      open: r.open,
+      high: r.high,
+      low: r.low,
+      close: r.close,
+      volume: r.volume
+    }))
+    .filter((r) => r.date)
+}
+
+async function fetchFmpFinancials (symbol) {
+  const sym = String(symbol || '').trim()
+  if (!sym) throw new Error('Missing symbol')
+
+  const [income, balance] = await Promise.all([
+    callFmpJson('income-statement', { symbol: sym, period: 'annual', limit: 8 }),
+    callFmpJson('balance-sheet-statement', { symbol: sym, period: 'annual', limit: 8 })
+  ])
+
+  const incomeAnnual = (Array.isArray(income) ? income : []).map((r) => ({
+    date: r.date || r.calendarYear || r.fillingDate,
+    endDate: r.date || r.calendarYear || r.fillingDate,
+    totalRevenue: r.revenue ?? r.totalRevenue,
+    grossProfit: r.grossProfit,
+    operatingIncome: r.operatingIncome,
+    netIncome: r.netIncome
+  }))
+
+  const balanceAnnual = (Array.isArray(balance) ? balance : []).map((r) => ({
+    date: r.date || r.calendarYear || r.fillingDate,
+    endDate: r.date || r.calendarYear || r.fillingDate,
+    totalAssets: r.totalAssets,
+    totalLiab: r.totalLiabilities ?? r.totalLiabilitiesAndTotalEquity,
+    totalStockholderEquity: r.totalEquity ?? r.totalStockholdersEquity
+  }))
+
+  return {
+    incomeAnnual,
+    incomeQuarterly: [],
+    balanceAnnual,
+    balanceQuarterly: []
+  }
+}
+
+async function fetchFmpEtfDetails (symbol) {
+  const sym = String(symbol || '').trim()
+  if (!sym) throw new Error('Missing symbol')
+
+  const [info, holdings] = await Promise.all([
+    callFmpJson('etf/info', { symbol: sym }),
+    callFmpJson('etf/holdings', { symbol: sym })
+  ])
+
+  const infoItem = Array.isArray(info) && info.length > 0 ? info[0] : info
+  const holdingsArr = Array.isArray(holdings?.holdings) ? holdings.holdings : (Array.isArray(holdings) ? holdings : [])
+
+  const expenseRatio =
+    infoItem?.expenseRatio ||
+    infoItem?.netExpenseRatio ||
+    infoItem?.totalExpenseRatio ||
+    null
+
+  const topHoldings = {
+    holdings: holdingsArr.map((h) => ({
+      symbol: h.asset ?? h.symbol,
+      holdingName: h.name ?? h.assetName ?? h.asset,
+      holdingPercent: h.weightPercentage != null ? Number(h.weightPercentage) / 100 : null
+    }))
+  }
+
+  return {
+    fundProfile: {
+      feesExpensesInvestment: {
+        netExpRatio: expenseRatio
+      }
+    },
+    topHoldings,
+    fundPerformance: {},
+    quoteType: { quoteType: 'ETF' }
+  }
 }
 
 // ----- Price alert storage -----
@@ -74,6 +336,16 @@ const createWindow = () => {
 }
 
 ipcMain.handle('stock:search', async (_event, query) => {
+  // Try FMP first, then fall back to Yahoo search if anything fails.
+  try {
+    const fmpResults = await fetchFmpSearch(query)
+    if (Array.isArray(fmpResults) && fmpResults.length > 0) {
+      return { ok: true, data: fmpResults }
+    }
+  } catch (err) {
+    console.warn('FMP search failed, falling back to Yahoo Finance:', err.message)
+  }
+
   try {
     const yf = await loadYahooFinance()
     const results = await yf.search(query)
@@ -84,6 +356,14 @@ ipcMain.handle('stock:search', async (_event, query) => {
 })
 
 ipcMain.handle('stock:quote', async (_event, symbol) => {
+  // Try FMP quote first, then fall back to Yahoo.
+  try {
+    const fmpQuote = await fetchFmpQuote(symbol)
+    return { ok: true, data: fmpQuote }
+  } catch (err) {
+    console.warn('FMP quote failed, falling back to Yahoo Finance:', err.message)
+  }
+
   try {
     const yf = await loadYahooFinance()
     const quote = await yf.quote(symbol)
@@ -102,6 +382,16 @@ ipcMain.handle('stock:quote', async (_event, symbol) => {
 })
 
 ipcMain.handle('stock:historical', async (_event, symbol, period1, period2) => {
+  // Try FMP daily EOD first, then fall back to Yahoo historical.
+  try {
+    const history = await fetchFmpHistorical(symbol, period1, period2)
+    if (Array.isArray(history) && history.length > 0) {
+      return { ok: true, data: history }
+    }
+  } catch (err) {
+    console.warn('FMP historical failed, falling back to Yahoo Finance:', err.message)
+  }
+
   try {
     const yf = await loadYahooFinance()
     const history = await yf.historical(symbol, { period1, period2 })
@@ -112,6 +402,20 @@ ipcMain.handle('stock:historical', async (_event, symbol, period1, period2) => {
 })
 
 ipcMain.handle('stock:financials', async (_event, symbol) => {
+  // Try FMP financial statements first, then fall back to Yahoo quoteSummary.
+  try {
+    const fmpData = await fetchFmpFinancials(symbol)
+    const hasAny =
+      (Array.isArray(fmpData.incomeAnnual) && fmpData.incomeAnnual.length > 0) ||
+      (Array.isArray(fmpData.balanceAnnual) && fmpData.balanceAnnual.length > 0)
+
+    if (hasAny) {
+      return { ok: true, data: fmpData }
+    }
+  } catch (err) {
+    console.warn('FMP financials failed, falling back to Yahoo Finance:', err.message)
+  }
+
   try {
     const yf = await loadYahooFinance()
     const raw = await yf.quoteSummary(symbol, {
@@ -143,6 +447,14 @@ ipcMain.handle('stock:financials', async (_event, symbol) => {
 })
 
 ipcMain.handle('stock:etfDetails', async (_event, symbol) => {
+  // Try FMP ETF info/holdings first, then fall back to Yahoo.
+  try {
+    const fmpEtf = await fetchFmpEtfDetails(symbol)
+    return { ok: true, data: fmpEtf }
+  } catch (err) {
+    console.warn('FMP ETF details failed, falling back to Yahoo Finance:', err.message)
+  }
+
   try {
     const yf = await loadYahooFinance()
     const raw = await yf.quoteSummary(symbol, {
