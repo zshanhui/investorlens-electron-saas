@@ -9,6 +9,13 @@ contextBridge.exposeInMainWorld('stockApi', {
   getEtfDetails: (symbol) => ipcRenderer.invoke('stock:etfDetails', symbol)
 })
 
+contextBridge.exposeInMainWorld('alertsApi', {
+  getAll: () => ipcRenderer.invoke('alerts:getAll'),
+  add: (payload) => ipcRenderer.invoke('alerts:add', payload),
+  remove: (id) => ipcRenderer.invoke('alerts:remove', id),
+  update: (payload) => ipcRenderer.invoke('alerts:update', payload)
+})
+
 contextBridge.exposeInMainWorld('i18n', {
   get: () => ipcRenderer.invoke('i18n:get')
 })

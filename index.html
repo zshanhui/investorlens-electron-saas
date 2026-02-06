@@ -112,7 +112,12 @@
       </section>
 
       <section class="detail-section" id="detailSection">
-        <h2 data-i18n="detail.title">Details</h2>
+        <div class="detail-header">
+          <h2 data-i18n="detail.title">Details</h2>
+          <button type="button" id="openAlertsScreenBtn" class="detail-alerts-btn" aria-label="Create price alert">
+            +
+          </button>
+        </div>
 
         <div class="detail-tabs" role="tablist">
           <button id="tabQuote" class="detail-tab active" type="button" data-i18n="detail.tabQuote">Quote &amp;
@@ -123,6 +128,39 @@
             Filings</button>
           <button id="tabEtf" class="detail-tab detail-tab-etf hidden" type="button"
             data-i18n="detail.tabEtf">ETF</button>
+        </div>
+
+        <div id="alertsScreen" class="alerts-screen hidden" role="tabpanel" aria-label="Create price alerts">
+          <div class="alerts-screen-header">
+            <button type="button" id="alertsBackBtn" class="alerts-back-btn">
+              ← <span data-i18n="alerts.backToDetails">Back to details</span>
+            </button>
+            <h3 class="alerts-screen-title" data-i18n="alerts.title">Price alerts</h3>
+          </div>
+          <div class="alerts-section alerts-section-symbol">
+            <div class="alerts-form">
+              <label class="alerts-field">
+                <span data-i18n="alerts.conditionLabel">When price is</span>
+                <select id="alertCondition" class="alerts-select">
+                  <option value="above" data-i18n="alerts.above">Above</option>
+                  <option value="below" data-i18n="alerts.below">Below</option>
+                </select>
+              </label>
+              <label class="alerts-field">
+                <span data-i18n="alerts.priceLabel">Target price</span>
+                <input type="number" step="0.01" id="alertPrice" class="alerts-input" placeholder="e.g. 150" />
+              </label>
+              <button type="button" id="alertCreateBtn" class="alerts-create-btn" data-i18n="alerts.create">
+                Set alert
+              </button>
+            </div>
+            <div id="alertsList" class="alerts-list"></div>
+          </div>
+
+          <div class="alerts-section alerts-section-all">
+            <h4 class="alerts-subtitle" data-i18n="alerts.myAlertsTitle">My alerts</h4>
+            <div id="allAlertsList" class="alerts-list alerts-list-all"></div>
+          </div>
         </div>
 
         <div id="quotePanel" class="quote-panel hidden" role="tabpanel" aria-labelledby="tabQuote">
@@ -261,6 +299,7 @@
   <script src="js/utils.js"></script>
   <script src="js/chart.js"></script>
   <script src="js/edgar.js"></script>
+  <script src="js/alerts.js"></script>
   <script src="js/renderer.js"></script>
 </body>
 

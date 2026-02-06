@@ -30,6 +30,10 @@
   tabFinancials: document.getElementById('tabFinancials'),
   tabEdgar: document.getElementById('tabEdgar'),
   tabEtf: document.getElementById('tabEtf'),
+  detailTabs: document.querySelector('.detail-tabs'),
+  alertsScreen: document.getElementById('alertsScreen'),
+  alertsBackBtn: document.getElementById('alertsBackBtn'),
+  openAlertsScreenBtn: document.getElementById('openAlertsScreenBtn'),
   financialsPanel: document.getElementById('financialsPanel'),
   edgarPanel: document.getElementById('edgarPanel'),
   edgarHint: document.getElementById('edgarHint'),
@@ -57,7 +61,12 @@
   etfExpenseValue: document.getElementById('etfExpenseValue'),
   etfHoldingsSection: document.getElementById('etfHoldingsSection'),
   etfHoldingsList: document.getElementById('etfHoldingsList'),
-  etfComingSoon: document.getElementById('etfComingSoon')
+  etfComingSoon: document.getElementById('etfComingSoon'),
+  alertCondition: document.getElementById('alertCondition'),
+  alertPrice: document.getElementById('alertPrice'),
+  alertCreateBtn: document.getElementById('alertCreateBtn'),
+  alertsList: document.getElementById('alertsList'),
+  allAlertsList: document.getElementById('allAlertsList')
 }
 
 App.state = {

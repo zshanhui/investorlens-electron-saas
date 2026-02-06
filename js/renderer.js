@@ -195,6 +195,10 @@ async function selectSymbol (symbol) {
     App.dom.historyBody.innerHTML = '<tr><td colspan="6">' + App.t('history.noHistory') + '</td></tr>'
     App.renderHistoryChart([])
   }
+
+  if (App.alerts && typeof App.alerts.refreshForCurrentSymbol === 'function') {
+    App.alerts.refreshForCurrentSymbol()
+  }
 }
 
 function renderFinancials (data) {
@@ -280,14 +284,26 @@ function renderEtfDetails (data) {
 }
 
 function showPanel (panel) {
-  App.dom.quotePanel.classList.toggle('hidden', panel !== 'quote')
-  App.dom.financialsPanel.classList.toggle('hidden', panel !== 'financials')
-  if (App.dom.edgarPanel) App.dom.edgarPanel.classList.toggle('hidden', panel !== 'edgar')
-  if (App.dom.etfPanel) App.dom.etfPanel.classList.toggle('hidden', panel !== 'etf')
-  App.dom.tabQuote.classList.toggle('active', panel === 'quote')
-  App.dom.tabFinancials.classList.toggle('active', panel === 'financials')
-  if (App.dom.tabEdgar) App.dom.tabEdgar.classList.toggle('active', panel === 'edgar')
-  if (App.dom.tabEtf) App.dom.tabEtf.classList.toggle('active', panel === 'etf')
+  const isQuote = panel === 'quote'
+  const isFinancials = panel === 'financials'
+  const isEdgar = panel === 'edgar'
+  const isEtf = panel === 'etf'
+
+  if (App.dom.alertsScreen) {
+    App.dom.alertsScreen.classList.add('hidden')
+  }
+  if (App.dom.detailTabs) {
+    App.dom.detailTabs.classList.remove('hidden')
+  }
+
+  App.dom.quotePanel.classList.toggle('hidden', !isQuote)
+  App.dom.financialsPanel.classList.toggle('hidden', !isFinancials)
+  if (App.dom.edgarPanel) App.dom.edgarPanel.classList.toggle('hidden', !isEdgar)
+  if (App.dom.etfPanel) App.dom.etfPanel.classList.toggle('hidden', !isEtf)
+  App.dom.tabQuote.classList.toggle('active', isQuote)
+  App.dom.tabFinancials.classList.toggle('active', isFinancials)
+  if (App.dom.tabEdgar) App.dom.tabEdgar.classList.toggle('active', isEdgar)
+  if (App.dom.tabEtf) App.dom.tabEtf.classList.toggle('active', isEtf)
 }
 
 App.dom.searchBtn.addEventListener('click', doSearch)
@@ -403,6 +419,26 @@ if (App.dom.tabEdgar) {
   })
 }
 
+if (App.dom.openAlertsScreenBtn && App.dom.alertsScreen && App.dom.alertsBackBtn) {
+  App.dom.openAlertsScreenBtn.addEventListener('click', () => {
+    if (App.dom.detailTabs) App.dom.detailTabs.classList.add('hidden')
+    App.dom.quotePanel.classList.add('hidden')
+    App.dom.financialsPanel.classList.add('hidden')
+    if (App.dom.edgarPanel) App.dom.edgarPanel.classList.add('hidden')
+    if (App.dom.etfPanel) App.dom.etfPanel.classList.add('hidden')
+    if (App.dom.alertsScreen) App.dom.alertsScreen.classList.remove('hidden')
+    if (App.alerts && typeof App.alerts.refreshForCurrentSymbol === 'function') {
+      App.alerts.refreshForCurrentSymbol()
+    }
+  })
+
+  App.dom.alertsBackBtn.addEventListener('click', () => {
+    if (App.dom.alertsScreen) App.dom.alertsScreen.classList.add('hidden')
+    if (App.dom.detailTabs) App.dom.detailTabs.classList.remove('hidden')
+    showPanel('quote')
+  })
+}
+
 ;(async function initApp () {
   const i18n = await window.__i18nInit()
   App.t = i18n.t
@@ -424,6 +460,9 @@ if (App.dom.tabEdgar) {
     })
   }
   applyThemeFromStorage()
+  if (App.alerts && typeof App.alerts.init === 'function') {
+    App.alerts.init()
+  }
   App.dom.searchInput.value = 'NVDA'
   selectSymbol('NVDA')
 })()

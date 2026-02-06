@@ -65,6 +65,27 @@ en:
   chart.noData: No chart data
   chart.loadFailed: Chart library failed to load
 
+  # Alerts
+  alerts.title: Price alerts
+  alerts.conditionLabel: When price is
+  alerts.priceLabel: Target price
+  alerts.create: Set alert
+  alerts.backToDetails: Back to details
+  alerts.noSymbol: Select a symbol to create price alerts.
+  alerts.noneForSymbol: No alerts for this symbol yet.
+  alerts.delete: Delete
+  alerts.noSymbolError: Select a symbol before creating an alert.
+  alerts.invalidPrice: Enter a valid target price greater than 0.
+  alerts.createFailed: Failed to create alert.
+  alerts.above: Above
+  alerts.below: Below
+  alerts.condition.above: Above
+  alerts.condition.below: Below
+  alerts.myAlertsTitle: My alerts
+  alerts.globalEmpty: You have not created any alerts yet.
+  alerts.save: Save
+  alerts.updateFailed: Failed to update alert.
+
   # Financials
   financials.title: Financial Statements
   financials.hint: Financials will load when you select a symbol.
@@ -201,6 +222,27 @@ zh:
   # Chart
   chart.noData: 暂无图表数据
   chart.loadFailed: 图表库加载失败
+
+  # Alerts
+  alerts.title: 价格预警
+  alerts.conditionLabel: 当价格
+  alerts.priceLabel: 目标价格
+  alerts.create: 设置预警
+  alerts.backToDetails: 返回详情
+  alerts.noSymbol: 请选择一只股票后再创建价格预警。
+  alerts.noneForSymbol: 当前股票还没有预警。
+  alerts.delete: 删除
+  alerts.noSymbolError: 请先选择一只股票，再创建预警。
+  alerts.invalidPrice: 请输入大于 0 的有效目标价格。
+  alerts.createFailed: 创建预警失败。
+  alerts.above: 高于
+  alerts.below: 低于
+  alerts.condition.above: 高于
+  alerts.condition.below: 低于
+  alerts.myAlertsTitle: 我的预警
+  alerts.globalEmpty: 你还没有创建任何价格预警。
+  alerts.save: 保存
+  alerts.updateFailed: 更新预警失败。
 
   # Financials
   financials.title: 财务报表
