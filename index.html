@@ -15,21 +15,28 @@
     <header class="header">
       <div class="header-main">
         <div>
-          <h1>InvestorLens</h1>
-          <p class="subtitle">Built by WuweiLabs · Powered by Yahoo Finance data</p>
+          <h1 data-i18n="app.title">InvestorLens</h1>
+          <p class="subtitle" data-i18n="app.subtitle">Built by WuweiLabs · Powered by Yahoo Finance data</p>
         </div>
-        <button type="button" id="themeToggle" class="theme-toggle" aria-label="Toggle light/dark mode">
-          Dark mode
-        </button>
+        <div class="header-actions">
+          <select id="langSwitch" class="lang-switch" aria-label="Language">
+            <option value="en">EN</option>
+            <option value="zh">中文</option>
+          </select>
+          <button type="button" id="themeToggle" class="theme-toggle" data-i18n-aria-label="app.themeToggleAria"
+            aria-label="Toggle light/dark mode">
+            Dark mode
+          </button>
+        </div>
       </div>
       <div class="search-bar">
-        <input type="text" id="searchInput" placeholder="Search symbol or company (e.g. AAPL, Apple)"
-          autocomplete="off" />
-        <button type="button" id="searchBtn">Search</button>
+        <input type="text" id="searchInput" data-i18n-placeholder="search.placeholder"
+          placeholder="Search symbol or company (e.g. AAPL, Apple)" autocomplete="off" />
+        <button type="button" id="searchBtn" data-i18n="search.btn">Search</button>
       </div>
 
-      <section class="quick-tiles" aria-label="Top NASDAQ tech companies">
-        <h2 class="quick-title">Top NASDAQ Tech</h2>
+      <section class="quick-tiles" data-i18n-aria-label="quick.ariaNasdaq" aria-label="Top NASDAQ tech companies">
+        <h2 class="quick-title" data-i18n="quick.topNasdaq">Top NASDAQ Tech</h2>
         <div class="quick-grid">
           <button class="quick-tile" data-symbol="NVDA">
             <span class="quick-symbol">NVDA</span>
@@ -74,8 +81,8 @@
         </div>
       </section>
 
-      <section class="quick-tiles" aria-label="Popular index ETFs">
-        <h2 class="quick-title">Major Index ETFs</h2>
+      <section class="quick-tiles" data-i18n-aria-label="quick.ariaEtfs" aria-label="Popular index ETFs">
+        <h2 class="quick-title" data-i18n="quick.majorEtfs">Major Index ETFs</h2>
         <div class="quick-grid">
           <button class="etf-tile" data-symbol="SPY">
             <span class="quick-symbol">SPY</span>
@@ -99,19 +106,23 @@
 
     <main class="main">
       <section class="results-section" id="resultsSection">
-        <h2>Search Results</h2>
+        <h2 data-i18n="results.title">Search Results</h2>
         <div id="resultsList" class="results-list"></div>
-        <p id="resultsHint" class="hint">Enter a symbol or company name and click Search.</p>
+        <p id="resultsHint" class="hint" data-i18n="results.hint">Enter a symbol or company name and click Search.</p>
       </section>
 
       <section class="detail-section" id="detailSection">
-        <h2>Details</h2>
+        <h2 data-i18n="detail.title">Details</h2>
 
         <div class="detail-tabs" role="tablist">
-          <button id="tabQuote" class="detail-tab active" type="button">Quote &amp; History</button>
-          <button id="tabFinancials" class="detail-tab detail-tab-stock" type="button">Financials</button>
-          <button id="tabEdgar" class="detail-tab detail-tab-stock" type="button">SEC Filings</button>
-          <button id="tabEtf" class="detail-tab detail-tab-etf hidden" type="button">ETF</button>
+          <button id="tabQuote" class="detail-tab active" type="button" data-i18n="detail.tabQuote">Quote &amp;
+            History</button>
+          <button id="tabFinancials" class="detail-tab detail-tab-stock" type="button"
+            data-i18n="detail.tabFinancials">Financials</button>
+          <button id="tabEdgar" class="detail-tab detail-tab-stock" type="button" data-i18n="detail.tabEdgar">SEC
+            Filings</button>
+          <button id="tabEtf" class="detail-tab detail-tab-etf hidden" type="button"
+            data-i18n="detail.tabEtf">ETF</button>
         </div>
 
         <div id="quotePanel" class="quote-panel hidden" role="tabpanel" aria-labelledby="tabQuote">
@@ -124,29 +135,29 @@
             <span id="quoteChange" class="change"></span>
           </div>
           <div id="historyChartContainer" class="history-chart-container">
-            <h3 class="history-chart-title">Price History (1Y)</h3>
+            <h3 class="history-chart-title" data-i18n="quote.priceHistory">Price History (1Y)</h3>
             <div id="historyChart" class="history-chart"></div>
           </div>
           <div class="quote-section">
-            <h3 class="quote-section-title">Valuation</h3>
+            <h3 class="quote-section-title" data-i18n="quote.valuation">Valuation</h3>
             <div class="quote-meta" id="quoteValuation"></div>
           </div>
           <div class="quote-section">
-            <h3 class="quote-section-title">Movement trends</h3>
+            <h3 class="quote-section-title" data-i18n="quote.movement">Movement trends</h3>
             <div class="quote-meta" id="quoteMovement"></div>
           </div>
           <div class="historical-section">
-            <h3>Recent History</h3>
+            <h3 data-i18n="quote.recentHistory">Recent History</h3>
             <div id="historyTableWrap" class="table-wrap">
               <table id="historyTable">
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Open</th>
-                    <th>High</th>
-                    <th>Low</th>
-                    <th>Close</th>
-                    <th>Volume</th>
+                    <th data-i18n="history.date">Date</th>
+                    <th data-i18n="history.open">Open</th>
+                    <th data-i18n="history.high">High</th>
+                    <th data-i18n="history.low">Low</th>
+                    <th data-i18n="history.close">Close</th>
+                    <th data-i18n="history.volume">Volume</th>
                   </tr>
                 </thead>
                 <tbody id="historyBody"></tbody>
@@ -156,12 +167,15 @@
         </div>
 
         <div id="financialsPanel" class="financials-panel hidden" role="tabpanel" aria-labelledby="tabFinancials">
-          <h3>Financial Statements</h3>
-          <p id="financialsStatus" class="hint">Financials will load when you select a symbol.</p>
+          <h3 data-i18n="financials.title">Financial Statements</h3>
+          <p id="financialsStatus" class="hint" data-i18n="financials.hint">Financials will load when you select a
+            symbol.</p>
 
           <div class="financials-subtabs">
-            <button id="subtabIncome" class="detail-subtab active" type="button">Income Statement</button>
-            <button id="subtabBalance" class="detail-subtab" type="button">Balance Sheet</button>
+            <button id="subtabIncome" class="detail-subtab active" type="button"
+              data-i18n="financials.incomeStatement">Income Statement</button>
+            <button id="subtabBalance" class="detail-subtab" type="button" data-i18n="financials.balanceSheet">Balance
+              Sheet</button>
           </div>
 
           <div id="incomeTableWrap" class="table-wrap">
@@ -180,66 +194,69 @@
         </div>
 
         <div id="etfPanel" class="etf-panel hidden" role="tabpanel" aria-labelledby="tabEtf">
-          <h3>ETF Details</h3>
-          <p id="etfStatus" class="hint">ETF data will load when you open this tab.</p>
+          <h3 data-i18n="etf.title">ETF Details</h3>
+          <p id="etfStatus" class="hint" data-i18n="etf.hint">ETF data will load when you open this tab.</p>
           <div id="etfExpenseSection" class="etf-section hidden">
-            <h4 class="etf-section-title">Expense ratio</h4>
+            <h4 class="etf-section-title" data-i18n="etf.expenseRatio">Expense ratio</h4>
             <p id="etfExpenseValue" class="etf-value"></p>
           </div>
           <div id="etfHoldingsSection" class="etf-section hidden">
-            <h4 class="etf-section-title">Top holdings</h4>
+            <h4 class="etf-section-title" data-i18n="etf.topHoldings">Top holdings</h4>
             <div id="etfHoldingsList" class="etf-holdings-list"></div>
           </div>
           <div id="etfComingSoon" class="etf-coming-soon hidden">
-            <p>More ETF data coming soon.</p>
+            <p data-i18n="etf.comingSoon">More ETF data coming soon.</p>
           </div>
         </div>
 
         <div id="edgarPanel" class="edgar-panel hidden" role="tabpanel" aria-labelledby="tabEdgar">
-          <h3>SEC EDGAR Filings</h3>
-          <p id="edgarHint" class="hint">Search for a U.S. public company by ticker or name to list SEC filings and
-            download PDFs.</p>
+          <h3 data-i18n="edgar.title">SEC EDGAR Filings</h3>
+          <p id="edgarHint" class="hint" data-i18n="edgar.hint">Search for a U.S. public company by ticker or name to
+            list SEC filings and download PDFs.</p>
           <div class="edgar-search-bar">
-            <input type="text" id="edgarSearchInput" placeholder="Ticker or company name (e.g. AAPL, Apple)"
-              autocomplete="off" />
-            <button type="button" id="edgarSearchBtn">Search EDGAR</button>
+            <input type="text" id="edgarSearchInput" data-i18n-placeholder="edgar.searchPlaceholder"
+              placeholder="Ticker or company name (e.g. AAPL, Apple)" autocomplete="off" />
+            <button type="button" id="edgarSearchBtn" data-i18n="edgar.searchBtn">Search EDGAR</button>
           </div>
           <div id="edgarCompanyList" class="edgar-company-list hidden"></div>
           <div id="edgarSelectedCompany" class="edgar-selected hidden"></div>
           <div class="edgar-form-filter">
-            <label>Form types:</label>
+            <label data-i18n="edgar.formTypes">Form types:</label>
             <select id="edgarFormFilter">
-              <option value="10-K,10-Q">10-K, 10-Q</option>
-              <option value="10-K">10-K only</option>
-              <option value="10-Q">10-Q only</option>
-              <option value="">All filings</option>
+              <option value="10-K,10-Q" data-i18n="edgar.form10K10Q">10-K, 10-Q</option>
+              <option value="10-K" data-i18n="edgar.form10K">10-K only</option>
+              <option value="10-Q" data-i18n="edgar.form10Q">10-Q only</option>
+              <option value="" data-i18n="edgar.formAll">All filings</option>
             </select>
           </div>
           <div id="edgarFilingsWrap" class="table-wrap hidden">
             <table id="edgarFilingsTable">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Form</th>
-                  <th>Report date</th>
-                  <th>Description</th>
-                  <th>Action</th>
+                  <th data-i18n="edgar.tableDate">Date</th>
+                  <th data-i18n="edgar.tableForm">Form</th>
+                  <th data-i18n="edgar.tableReportDate">Report date</th>
+                  <th data-i18n="edgar.tableDescription">Description</th>
+                  <th data-i18n="edgar.tableAction">Action</th>
                 </tr>
               </thead>
               <tbody id="edgarFilingsBody"></tbody>
             </table>
           </div>
-          <p id="edgarFilingsHint" class="hint hidden">Select a company to see filings.</p>
+          <p id="edgarFilingsHint" class="hint hidden" data-i18n="edgar.selectCompanyHint">Select a company to see
+            filings.</p>
         </div>
 
-        <p id="detailHint" class="hint">Select a symbol from search results to view details.</p>
+        <p id="detailHint" class="hint" data-i18n="detail.selectHint">Select a symbol from search results to view
+          details.</p>
       </section>
     </main>
 
-    <div id="loading" class="loading hidden">Loading…</div>
+    <div id="loading" class="loading hidden" data-i18n="loading.text">Loading…</div>
     <div id="error" class="error hidden"></div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="i18n.js"></script>
   <script src="renderer.js"></script>
 </body>
 

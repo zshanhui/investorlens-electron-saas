@@ -1,6 +1,18 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
+const fs = require('fs')
 const path = require('path')
 const { pathToFileURL } = require('url')
+const yaml = require('js-yaml')
+
+let i18nTranslations = { en: {}, zh: {} }
+try {
+  const yamlPath = path.join(__dirname, 'translations.yaml')
+  const parsed = yaml.load(fs.readFileSync(yamlPath, 'utf8'))
+  if (parsed && parsed.en) i18nTranslations.en = parsed.en
+  if (parsed && parsed.zh) i18nTranslations.zh = parsed.zh
+} catch (err) {
+  console.error('Failed to load translations.yaml:', err.message)
+}
 
 let edgarService
 function getEdgarService () {
@@ -152,6 +164,8 @@ ipcMain.handle('edgar:downloadPdf', async (_event, { cik, accessionNumber, prima
     return { ok: false, error: err.message }
   }
 })
+
+ipcMain.handle('i18n:get', () => i18nTranslations)
 
 ipcMain.handle('edgar:openPdf', (_event, pdfPath) => {
   if (!pdfPath || typeof pdfPath !== 'string') return

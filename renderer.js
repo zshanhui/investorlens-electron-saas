@@ -1,8 +1,11 @@
+let t = (k) => k
+
 const searchInput = document.getElementById('searchInput')
 const searchBtn = document.getElementById('searchBtn')
 const resultsList = document.getElementById('resultsList')
 const resultsHint = document.getElementById('resultsHint')
 const themeToggle = document.getElementById('themeToggle')
+const langSwitch = document.getElementById('langSwitch')
 const quickTiles = document.querySelectorAll('.quick-tile')
 const etfTiles = document.querySelectorAll('.etf-tile')
 const quotePanel = document.getElementById('quotePanel')
@@ -77,7 +80,15 @@ function applyThemeFromStorage () {
 function updateThemeToggleLabel () {
   if (!themeToggle) return
   const isLight = document.body.classList.contains('light-theme')
-  themeToggle.textContent = isLight ? 'Dark mode' : 'Light mode'
+  themeToggle.textContent = t(isLight ? 'theme.dark' : 'theme.light')
+}
+
+function translateError (msg) {
+  if (!msg) return msg
+  if (msg.includes('SEC rate limit exceeded')) return t('error.secRateLimit')
+  if (msg.includes('Invalid CIK')) return t('error.invalidCik')
+  if (msg.includes('No available document found')) return t('error.noDocument')
+  return msg
 }
 
 if (themeToggle) {
@@ -151,7 +162,7 @@ function renderHistoryChart (rows) {
   if (!historyChart) return
 
   if (!Array.isArray(rows) || rows.length === 0) {
-    historyChart.innerHTML = '<div class="history-chart-empty">No chart data</div>'
+    historyChart.innerHTML = '<div class="history-chart-empty">' + t('chart.noData') + '</div>'
     return
   }
 
@@ -160,7 +171,7 @@ function renderHistoryChart (rows) {
     .slice(-252) // roughly last 1 trading year
 
   if (points.length === 0) {
-    historyChart.innerHTML = '<div class="history-chart-empty">No chart data</div>'
+    historyChart.innerHTML = '<div class="history-chart-empty">' + t('chart.noData') + '</div>'
     return
   }
 
@@ -181,7 +192,7 @@ function renderHistoryChart (rows) {
   }
 
   if (typeof echarts === 'undefined') {
-    historyChart.innerHTML = '<div class="history-chart-empty">Chart library failed to load</div>'
+    historyChart.innerHTML = '<div class="history-chart-empty">' + t('chart.loadFailed') + '</div>'
     return
   }
 
@@ -246,7 +257,7 @@ function renderHistoryChart (rows) {
     series: [
       {
         type: 'line',
-        name: 'Close',
+        name: t('quote.close'),
         showSymbol: false,
         smooth: true,
         lineStyle: {
@@ -279,8 +290,8 @@ async function doSearch () {
   showLoading(false)
 
   if (!result.ok) {
-    showError(result.error || 'Search failed')
-    resultsHint.textContent = 'Search failed. Try again.'
+    showError(translateError(result.error) || t('error.searchFailed'))
+    resultsHint.textContent = t('results.searchFailed')
     resultsHint.classList.remove('hidden')
     return
   }
@@ -288,7 +299,7 @@ async function doSearch () {
   // yahoo-finance2 v3 search() returns an array of matches
   const items = Array.isArray(result.data) ? result.data : (result.data?.quotes || [])
   if (!items || items.length === 0) {
-    resultsHint.textContent = 'No results found.'
+    resultsHint.textContent = t('results.noResults')
     resultsHint.classList.remove('hidden')
     return
   }
@@ -317,14 +328,14 @@ async function selectSymbol (symbol) {
   detailHint.classList.add('hidden')
   quotePanel.classList.remove('hidden')
   quoteSymbol.textContent = symbol
-  quoteName.textContent = 'Loading…'
+  quoteName.textContent = t('quote.loading')
   quotePrice.textContent = '—'
   quoteChange.textContent = ''
   if (quoteValuation) quoteValuation.innerHTML = ''
   if (quoteMovement) quoteMovement.innerHTML = ''
   historyBody.innerHTML = ''
   if (historyChart) historyChart.innerHTML = ''
-  financialsStatus.textContent = 'Click the Financials tab to load statements.'
+  financialsStatus.textContent = t('quote.clickFinancials')
   incomeHead.innerHTML = ''
   incomeBody.innerHTML = ''
   balanceHead.innerHTML = ''
@@ -350,8 +361,8 @@ async function selectSymbol (symbol) {
   showLoading(false)
 
   if (!quoteResult.ok) {
-    showError(quoteResult.error || 'Failed to load quote')
-    quoteName.textContent = 'Failed to load'
+    showError(translateError(quoteResult.error) || t('error.loadQuoteFailed'))
+    quoteName.textContent = t('quote.failedToLoad')
     return
   }
 
@@ -390,11 +401,11 @@ async function selectSymbol (symbol) {
   }
 
   const valuationFields = [
-    ['Market Cap', q.marketCap, formatNum],
-    ['P/E (TTM)', q.trailingPE, formatRatio],
-    ['Forward P/E', q.forwardPE, formatRatio],
-    ['P/B', q.priceToBook, formatRatio],
-    ['P/S (TTM)', q.priceToSalesTrailing12Months, formatRatio]
+    [t('quote.marketCap'), q.marketCap, formatNum],
+    [t('quote.peTtm'), q.trailingPE, formatRatio],
+    [t('quote.forwardPe'), q.forwardPE, formatRatio],
+    [t('quote.pb'), q.priceToBook, formatRatio],
+    [t('quote.psTtm'), q.priceToSalesTrailing12Months, formatRatio]
   ]
   quoteValuation.innerHTML = valuationFields
     .map(
@@ -407,11 +418,11 @@ async function selectSymbol (symbol) {
     .join('')
 
   const movementFields = [
-    ['Volume', q.regularMarketVolume, formatNum],
-    ['Day High', q.regularMarketDayHigh, formatPrice],
-    ['Day Low', q.regularMarketDayLow, formatPrice],
-    ['52w High', q.fiftyTwoWeekHigh, formatPrice],
-    ['52w Low', q.fiftyTwoWeekLow, formatPrice]
+    [t('quote.volume'), q.regularMarketVolume, formatNum],
+    [t('quote.dayHigh'), q.regularMarketDayHigh, formatPrice],
+    [t('quote.dayLow'), q.regularMarketDayLow, formatPrice],
+    [t('quote.w52High'), q.fiftyTwoWeekHigh, formatPrice],
+    [t('quote.w52Low'), q.fiftyTwoWeekLow, formatPrice]
   ]
   quoteMovement.innerHTML = movementFields
     .map(
@@ -441,7 +452,7 @@ async function selectSymbol (symbol) {
       .join('')
     renderHistoryChart(histResult.data)
   } else {
-    historyBody.innerHTML = '<tr><td colspan="6">No history available</td></tr>'
+    historyBody.innerHTML = '<tr><td colspan="6">' + t('history.noHistory') + '</td></tr>'
     renderHistoryChart([])
   }
 }
@@ -452,32 +463,29 @@ window.addEventListener('resize', () => {
   }
 })
 
-// Initialize theme on load
-applyThemeFromStorage()
-
 function renderFinancials (data) {
   const income = (data.incomeAnnual || []).slice(0, 4)
   const balance = (data.balanceAnnual || []).slice(0, 4)
 
   if (income.length === 0 && balance.length === 0) {
-    financialsStatus.textContent = 'Financials unavailable'
+    financialsStatus.textContent = t('financials.unavailable')
     return
   }
 
-  financialsStatus.textContent = 'Showing last 4 annual periods.'
+  financialsStatus.textContent = t('financials.showingPeriods')
 
   if (income.length > 0) {
     const periods = income.map(r => formatDate(r.endDate || r.date))
     incomeHead.innerHTML =
-      '<tr><th>Line Item</th>' +
+      '<tr><th>' + t('financials.lineItem') + '</th>' +
       periods.map(p => `<th>${p}</th>`).join('') +
       '</tr>'
 
     const fields = [
-      ['Total Revenue', 'totalRevenue'],
-      ['Gross Profit', 'grossProfit'],
-      ['Operating Income', 'operatingIncome'],
-      ['Net Income', 'netIncome']
+      [t('financials.totalRevenue'), 'totalRevenue'],
+      [t('financials.grossProfit'), 'grossProfit'],
+      [t('financials.operatingIncome'), 'operatingIncome'],
+      [t('financials.netIncome'), 'netIncome']
     ]
 
     incomeBody.innerHTML = fields
@@ -493,14 +501,14 @@ function renderFinancials (data) {
   if (balance.length > 0) {
     const periods = balance.map(r => formatDate(r.endDate || r.date))
     balanceHead.innerHTML =
-      '<tr><th>Line Item</th>' +
+      '<tr><th>' + t('financials.lineItem') + '</th>' +
       periods.map(p => `<th>${p}</th>`).join('') +
       '</tr>'
 
     const fields = [
-      ['Total Assets', 'totalAssets'],
-      ['Total Liabilities', 'totalLiab'],
-      ['Total Equity', 'totalStockholderEquity']
+      [t('financials.totalAssets'), 'totalAssets'],
+      [t('financials.totalLiabilities'), 'totalLiab'],
+      [t('financials.totalEquity'), 'totalStockholderEquity']
     ]
 
     balanceBody.innerHTML = fields
@@ -540,10 +548,6 @@ etfTiles.forEach((tile) => {
     selectSymbol(symbol)
   })
 })
-
-// Auto-select NVDA on app start or refresh
-searchInput.value = 'NVDA'
-selectSymbol('NVDA')
 
 function updateDetailTabsForEtf () {
   if (!tabFinancials || !tabEdgar || !tabEtf) return
@@ -589,7 +593,7 @@ tabFinancials.addEventListener('click', () => {
   if (etfPanel) etfPanel.classList.add('hidden')
 
   if (!currentSymbol) {
-    financialsStatus.textContent = 'Select a symbol to view financials.'
+    financialsStatus.textContent = t('financials.selectHint')
     return
   }
 
@@ -598,7 +602,7 @@ tabFinancials.addEventListener('click', () => {
   }
 
   ;(async () => {
-    financialsStatus.textContent = 'Loading financials…'
+    financialsStatus.textContent = t('financials.loading')
     incomeHead.innerHTML = ''
     incomeBody.innerHTML = ''
     balanceHead.innerHTML = ''
@@ -609,10 +613,10 @@ tabFinancials.addEventListener('click', () => {
         renderFinancials(finResult.data)
         financialsLoadedFor = currentSymbol
       } else {
-        financialsStatus.textContent = finResult.error || 'Financials unavailable'
+        financialsStatus.textContent = translateError(finResult.error) || t('error.financialsFailed')
       }
     } catch (err) {
-      financialsStatus.textContent = 'Financials unavailable'
+      financialsStatus.textContent = t('error.financialsFailed')
     }
   })()
 })
@@ -644,7 +648,7 @@ if (tabEtf) {
     if (etfPanel) etfPanel.classList.remove('hidden')
 
     if (!currentSymbol) {
-      etfStatus.textContent = 'Select an ETF to view details.'
+      etfStatus.textContent = t('etf.selectHint')
       etfStatus.classList.remove('hidden')
       return
     }
@@ -652,7 +656,7 @@ if (tabEtf) {
     if (etfDetailsLoadedFor === currentSymbol) return
 
     ;(async () => {
-      etfStatus.textContent = 'Loading ETF data…'
+      etfStatus.textContent = t('etf.loading')
       etfStatus.classList.remove('hidden')
       etfExpenseSection.classList.add('hidden')
       etfHoldingsSection.classList.add('hidden')
@@ -663,12 +667,12 @@ if (tabEtf) {
           renderEtfDetails(res.data)
           etfDetailsLoadedFor = currentSymbol
         } else {
-          etfStatus.textContent = res.error || 'ETF data unavailable.'
+          etfStatus.textContent = translateError(res.error) || t('error.etfFailed')
           etfComingSoon.classList.remove('hidden')
-          etfComingSoon.querySelector('p').textContent = 'More ETF data coming soon.'
+          etfComingSoon.querySelector('p').textContent = t('etf.comingSoon')
         }
       } catch (err) {
-        etfStatus.textContent = 'ETF data unavailable.'
+        etfStatus.textContent = t('error.etfFailed')
         etfComingSoon.classList.remove('hidden')
       }
     })()
@@ -710,7 +714,7 @@ function renderEtfDetails (data) {
 
   if (!hasAny) {
     etfComingSoon.classList.remove('hidden')
-    etfComingSoon.querySelector('p').textContent = 'More ETF data coming soon.'
+    etfComingSoon.querySelector('p').textContent = t('etf.comingSoon')
   } else {
     etfComingSoon.classList.add('hidden')
   }
@@ -735,7 +739,7 @@ if (tabEdgar) {
         try {
           await openEdgarForSymbol(currentSymbol)
         } catch (err) {
-          showError(err.message || 'Failed to load SEC filings')
+          showError(translateError(err.message) || t('error.secFilingsFailed'))
         }
       })()
     } else if (edgarSearchBar) {
@@ -756,7 +760,7 @@ async function openEdgarForSymbol (symbol) {
   edgarFilingsWrap.classList.add('hidden')
   edgarFilingsBody.innerHTML = ''
   edgarFilingsHint.classList.remove('hidden')
-  edgarFilingsHint.textContent = 'Searching EDGAR…'
+  edgarFilingsHint.textContent = t('edgar.searching')
   showLoading(true)
   showError(null)
 
@@ -764,15 +768,14 @@ async function openEdgarForSymbol (symbol) {
   showLoading(false)
 
   if (!result.ok) {
-    showError(result.error || 'EDGAR search failed')
-    edgarFilingsHint.textContent = result.error || 'Search failed.'
+    showError(translateError(result.error) || t('error.edgarSearchFailed'))
+    edgarFilingsHint.textContent = translateError(result.error) || t('error.searchFailedShort')
     return
   }
 
   const companies = result.data || []
   if (companies.length === 0) {
-    edgarFilingsHint.textContent =
-      'No SEC registrant found for this ticker. Try using the company name instead.'
+    edgarFilingsHint.textContent = t('edgar.noRegistrant')
     return
   }
 
@@ -797,7 +800,7 @@ async function doEdgarSearch () {
   edgarFilingsWrap.classList.add('hidden')
   edgarFilingsBody.innerHTML = ''
   edgarFilingsHint.classList.remove('hidden')
-  edgarFilingsHint.textContent = 'Searching EDGAR…'
+  edgarFilingsHint.textContent = t('edgar.searching')
   showLoading(true)
   showError(null)
 
@@ -805,14 +808,14 @@ async function doEdgarSearch () {
   showLoading(false)
 
   if (!result.ok) {
-    showError(result.error || 'EDGAR search failed')
-    edgarFilingsHint.textContent = result.error || 'Search failed.'
+    showError(translateError(result.error) || t('error.edgarSearchFailed'))
+    edgarFilingsHint.textContent = translateError(result.error) || t('error.searchFailedShort')
     return
   }
 
   const companies = result.data || []
   if (companies.length === 0) {
-    edgarFilingsHint.textContent = 'No companies found. Try a different ticker or name.'
+    edgarFilingsHint.textContent = t('edgar.noCompanies')
     return
   }
 
@@ -844,11 +847,11 @@ async function selectEdgarCompany (company) {
   edgarCompanyList.classList.add('hidden')
   edgarCompanyList.innerHTML = ''
   edgarSelectedCompany.classList.remove('hidden')
-  edgarSelectedCompany.textContent = `Company: ${company.ticker || ''} – ${company.name || ''} (CIK: ${company.cik || ''})`
+  edgarSelectedCompany.textContent = t('edgar.companyLabel', { ticker: company.ticker || '', name: company.name || '', cik: company.cik || '' })
   edgarFilingsWrap.classList.add('hidden')
   edgarFilingsBody.innerHTML = ''
   edgarFilingsHint.classList.remove('hidden')
-  edgarFilingsHint.textContent = 'Loading filings…'
+  edgarFilingsHint.textContent = t('edgar.loadingFilings')
   showLoading(true)
   showError(null)
 
@@ -857,8 +860,8 @@ async function selectEdgarCompany (company) {
   showLoading(false)
 
   if (!result.ok) {
-    showError(result.error || 'Failed to load filings')
-    edgarFilingsHint.textContent = result.error || 'Failed to load filings.'
+    showError(translateError(result.error) || t('error.loadFilingsFailed'))
+    edgarFilingsHint.textContent = translateError(result.error) || t('error.loadFilingsFailed')
     return
   }
 
@@ -866,7 +869,7 @@ async function selectEdgarCompany (company) {
   edgarFilingsHint.classList.add('hidden')
   if (edgarFilings.length === 0) {
     edgarFilingsHint.classList.remove('hidden')
-    edgarFilingsHint.textContent = 'No filings found for this company.'
+    edgarFilingsHint.textContent = t('edgar.noFilings')
     return
   }
 
@@ -881,8 +884,8 @@ async function selectEdgarCompany (company) {
           <td>${escapeHtml(f.description || '')}</td>
           <td>
             <div class="edgar-action-btns">
-              <button type="button" class="edgar-btn download-pdf" data-accession="${escapeHtml(f.accessionNumber)}" data-cik="${escapeHtml(f.cik)}" data-primary="${escapeHtml(f.primaryDocument || '')}">Download</button>
-              <button type="button" class="edgar-btn open" data-accession="${escapeHtml(f.accessionNumber)}" data-cik="${escapeHtml(f.cik)}" data-primary="${escapeHtml(f.primaryDocument || '')}">View Report</button>
+              <button type="button" class="edgar-btn download-pdf" data-accession="${escapeHtml(f.accessionNumber)}" data-cik="${escapeHtml(f.cik)}" data-primary="${escapeHtml(f.primaryDocument || '')}">${t('edgar.download')}</button>
+              <button type="button" class="edgar-btn open" data-accession="${escapeHtml(f.accessionNumber)}" data-cik="${escapeHtml(f.cik)}" data-primary="${escapeHtml(f.primaryDocument || '')}">${t('edgar.viewReport')}</button>
             </div>
           </td>
         </tr>
@@ -897,7 +900,7 @@ async function selectEdgarCompany (company) {
       const primaryDocument = btn.getAttribute('data-primary') || undefined
       if (!cik || !accessionNumber) return
       btn.disabled = true
-      btn.textContent = 'Downloading…'
+      btn.textContent = t('edgar.downloading')
       showError(null)
       try {
         const res = await window.edgar.downloadPdf({ cik, accessionNumber, primaryDocument })
@@ -908,13 +911,13 @@ async function selectEdgarCompany (company) {
           }
           btn.remove()
         } else {
-          showError(res.error || 'Download failed')
-          btn.textContent = 'Download'
+          showError(translateError(res.error) || t('error.downloadFailed'))
+          btn.textContent = t('edgar.download')
           btn.disabled = false
         }
       } catch (err) {
-        showError(err.message || 'Download failed')
-        btn.textContent = 'Download'
+        showError(translateError(err.message) || t('error.downloadFailed'))
+        btn.textContent = t('edgar.download')
         btn.disabled = false
       }
     })
@@ -928,7 +931,7 @@ async function selectEdgarCompany (company) {
       const primaryDocument = btn.getAttribute('data-primary') || undefined
       if (!path && cik && accessionNumber) {
         btn.disabled = true
-        btn.textContent = 'Preparing…'
+        btn.textContent = t('edgar.preparing')
         try {
           const res = await window.edgar.downloadPdf({ cik, accessionNumber, primaryDocument })
           if (res.ok) {
@@ -937,7 +940,7 @@ async function selectEdgarCompany (company) {
           }
         } catch (_) {}
         btn.disabled = false
-        btn.textContent = 'View Report'
+        btn.textContent = t('edgar.viewReport')
       }
       if (path && window.edgar.openPdf) window.edgar.openPdf(path)
     })
@@ -957,4 +960,29 @@ if (edgarFormFilter) {
     if (currentEdgarCompany) selectEdgarCompany(currentEdgarCompany)
   })
 }
+
+;(async function initApp () {
+  const i18n = await window.__i18nInit()
+  t = i18n.t
+  i18n.applyToPage()
+  if (langSwitch) {
+    langSwitch.value = i18n.getLocale ? i18n.getLocale() : 'en'
+    try {
+      const stored = window.localStorage.getItem('i18n.locale')
+      if (stored === 'zh' || stored === 'en') langSwitch.value = stored
+    } catch (_) {}
+    langSwitch.addEventListener('change', () => {
+      const loc = langSwitch.value
+      if (loc !== 'en' && loc !== 'zh') return
+      i18n.setLocale(loc)
+      i18n.applyToPage()
+      updateThemeToggleLabel()
+      if (currentSymbol) selectSymbol(currentSymbol)
+      if (currentEdgarCompany) selectEdgarCompany(currentEdgarCompany)
+    })
+  }
+  applyThemeFromStorage()
+  searchInput.value = 'NVDA'
+  selectSymbol('NVDA')
+})()
 

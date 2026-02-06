@@ -50,6 +50,22 @@ body.light-theme {
   gap: 16px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lang-switch {
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
 .header h1 {
   margin: 0 0 4px 0;
   font-size: 1.75rem;

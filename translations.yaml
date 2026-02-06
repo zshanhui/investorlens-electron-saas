@@ -1,0 +1,273 @@
+en:
+  # App
+  app.title: InvestorLens
+  app.subtitle: Built by WuweiLabs · Powered by Yahoo Finance data
+  app.themeToggleAria: Toggle light/dark mode
+
+  # Theme
+  theme.dark: Dark mode
+  theme.light: Light mode
+
+  # Search
+  search.placeholder: "Search symbol or company (e.g. AAPL, Apple)"
+  search.btn: Search
+
+  # Quick tiles
+  quick.topNasdaq: Top NASDAQ Tech
+  quick.majorEtfs: Major Index ETFs
+  quick.ariaNasdaq: Top NASDAQ tech companies
+  quick.ariaEtfs: Popular index ETFs
+
+  # Results
+  results.title: Search Results
+  results.hint: "Enter a symbol or company name and click Search."
+  results.searchFailed: Search failed. Try again.
+  results.noResults: No results found.
+
+  # Detail section
+  detail.title: Details
+  detail.tabQuote: "Quote & History"
+  detail.tabFinancials: Financials
+  detail.tabEdgar: SEC Filings
+  detail.tabEtf: ETF
+  detail.selectHint: Select a symbol from search results to view details.
+
+  # Quote panel
+  quote.priceHistory: Price History (1Y)
+  quote.valuation: Valuation
+  quote.movement: Movement trends
+  quote.recentHistory: Recent History
+  quote.loading: Loading…
+  quote.failedToLoad: Failed to load
+  quote.clickFinancials: Click the Financials tab to load statements.
+  quote.marketCap: Market Cap
+  quote.peTtm: P/E (TTM)
+  quote.forwardPe: Forward P/E
+  quote.pb: P/B
+  quote.psTtm: P/S (TTM)
+  quote.volume: Volume
+  quote.dayHigh: Day High
+  quote.dayLow: Day Low
+  quote.w52High: 52w High
+  quote.w52Low: 52w Low
+  quote.close: Close
+
+  # History table
+  history.date: Date
+  history.open: Open
+  history.high: High
+  history.low: Low
+  history.close: Close
+  history.volume: Volume
+  history.noHistory: No history available
+
+  # Chart
+  chart.noData: No chart data
+  chart.loadFailed: Chart library failed to load
+
+  # Financials
+  financials.title: Financial Statements
+  financials.hint: Financials will load when you select a symbol.
+  financials.selectHint: Select a symbol to view financials.
+  financials.loading: Loading financials…
+  financials.unavailable: Financials unavailable
+  financials.showingPeriods: Showing last 4 annual periods.
+  financials.incomeStatement: Income Statement
+  financials.balanceSheet: Balance Sheet
+  financials.lineItem: Line Item
+  financials.totalRevenue: Total Revenue
+  financials.grossProfit: Gross Profit
+  financials.operatingIncome: Operating Income
+  financials.netIncome: Net Income
+  financials.totalAssets: Total Assets
+  financials.totalLiabilities: Total Liabilities
+  financials.totalEquity: Total Equity
+
+  # ETF
+  etf.title: ETF Details
+  etf.hint: ETF data will load when you open this tab.
+  etf.selectHint: Select an ETF to view details.
+  etf.loading: Loading ETF data…
+  etf.unavailable: ETF data unavailable.
+  etf.comingSoon: More ETF data coming soon.
+  etf.expenseRatio: Expense ratio
+  etf.topHoldings: Top holdings
+
+  # EDGAR
+  edgar.title: SEC EDGAR Filings
+  edgar.hint: "Search for a U.S. public company by ticker or name to list SEC filings and download PDFs."
+  edgar.searchPlaceholder: "Ticker or company name (e.g. AAPL, Apple)"
+  edgar.searchBtn: Search EDGAR
+  edgar.formTypes: Form types
+  edgar.form10K10Q: "10-K, 10-Q"
+  edgar.form10K: 10-K only
+  edgar.form10Q: 10-Q only
+  edgar.formAll: All filings
+  edgar.tableDate: Date
+  edgar.tableForm: Form
+  edgar.tableReportDate: Report date
+  edgar.tableDescription: Description
+  edgar.tableAction: Action
+  edgar.selectCompanyHint: Select a company to see filings.
+  edgar.searching: Searching EDGAR…
+  edgar.loadingFilings: Loading filings…
+  edgar.noRegistrant: No SEC registrant found for this ticker. Try using the company name instead.
+  edgar.noCompanies: No companies found. Try a different ticker or name.
+  edgar.noFilings: No filings found for this company.
+  edgar.companyLabel: "Company: {ticker} – {name} (CIK: {cik})"
+  edgar.download: Download
+  edgar.downloading: Downloading…
+  edgar.viewReport: View Report
+  edgar.preparing: Preparing…
+
+  # Loading & errors
+  loading.text: Loading…
+  error.searchFailed: Search failed
+  error.loadQuoteFailed: Failed to load quote
+  error.financialsFailed: Financials unavailable
+  error.etfFailed: ETF data unavailable.
+  error.edgarSearchFailed: EDGAR search failed
+  error.searchFailedShort: Search failed.
+  error.loadFilingsFailed: Failed to load filings
+  error.downloadFailed: Download failed
+  error.secFilingsFailed: Failed to load SEC filings
+  error.secRateLimit: SEC rate limit exceeded. Please try again in a moment.
+  error.invalidCik: Invalid CIK
+  error.noDocument: No available document found for this filing
+
+zh:
+  # App
+  app.title: 投资透镜
+  app.subtitle: 由 WuweiLabs 出品 · 数据来自 Yahoo Finance
+  app.themeToggleAria: 切换明暗模式
+
+  # Theme
+  theme.dark: 深色模式
+  theme.light: 浅色模式
+
+  # Search
+  search.placeholder: "搜索股票代码或公司名称（如 AAPL、苹果）"
+  search.btn: 搜索
+
+  # Quick tiles
+  quick.topNasdaq: 纳斯达克科技龙头
+  quick.majorEtfs: 主要指数 ETF
+  quick.ariaNasdaq: 纳斯达克科技公司
+  quick.ariaEtfs: 热门指数 ETF
+
+  # Results
+  results.title: 搜索结果
+  results.hint: "输入股票代码或公司名称，点击搜索。"
+  results.searchFailed: 搜索失败，请重试。
+  results.noResults: 未找到结果。
+
+  # Detail section
+  detail.title: 详情
+  detail.tabQuote: "报价与历史"
+  detail.tabFinancials: 财务报表
+  detail.tabEdgar: SEC 文件
+  detail.tabEtf: ETF
+  detail.selectHint: 从搜索结果中选择一只股票查看详情。
+
+  # Quote panel
+  quote.priceHistory: 价格历史（1年）
+  quote.valuation: 估值
+  quote.movement: 走势
+  quote.recentHistory: 近期历史
+  quote.loading: 加载中…
+  quote.failedToLoad: 加载失败
+  quote.clickFinancials: 点击「财务报表」标签加载数据。
+  quote.marketCap: 市值
+  quote.peTtm: 市盈率 (TTM)
+  quote.forwardPe: 预期市盈率
+  quote.pb: 市净率
+  quote.psTtm: 市销率 (TTM)
+  quote.volume: 成交量
+  quote.dayHigh: 当日最高
+  quote.dayLow: 当日最低
+  quote.w52High: 52周最高
+  quote.w52Low: 52周最低
+  quote.close: 收盘价
+
+  # History table
+  history.date: 日期
+  history.open: 开盘
+  history.high: 最高
+  history.low: 最低
+  history.close: 收盘
+  history.volume: 成交量
+  history.noHistory: 暂无历史数据
+
+  # Chart
+  chart.noData: 暂无图表数据
+  chart.loadFailed: 图表库加载失败
+
+  # Financials
+  financials.title: 财务报表
+  financials.hint: 选择股票后可加载财务数据。
+  financials.selectHint: 选择一只股票查看财务报表。
+  financials.loading: 加载财务数据…
+  financials.unavailable: 财务数据不可用
+  financials.showingPeriods: 显示最近 4 个年度。
+  financials.incomeStatement: 利润表
+  financials.balanceSheet: 资产负债表
+  financials.lineItem: 科目
+  financials.totalRevenue: 总收入
+  financials.grossProfit: 毛利润
+  financials.operatingIncome: 营业利润
+  financials.netIncome: 净利润
+  financials.totalAssets: 总资产
+  financials.totalLiabilities: 总负债
+  financials.totalEquity: 股东权益
+
+  # ETF
+  etf.title: ETF 详情
+  etf.hint: 打开此标签可加载 ETF 数据。
+  etf.selectHint: 选择一只 ETF 查看详情。
+  etf.loading: 加载 ETF 数据…
+  etf.unavailable: ETF 数据不可用。
+  etf.comingSoon: 更多 ETF 数据即将推出。
+  etf.expenseRatio: 费率
+  etf.topHoldings: 主要持仓
+
+  # EDGAR
+  edgar.title: SEC EDGAR 文件
+  edgar.hint: "按股票代码或公司名称搜索美国上市公司，可查看 SEC 文件并下载 PDF。"
+  edgar.searchPlaceholder: "股票代码或公司名称（如 AAPL、苹果）"
+  edgar.searchBtn: 搜索 EDGAR
+  edgar.formTypes: 文件类型
+  edgar.form10K10Q: "10-K、10-Q"
+  edgar.form10K: 仅 10-K
+  edgar.form10Q: 仅 10-Q
+  edgar.formAll: 全部文件
+  edgar.tableDate: 日期
+  edgar.tableForm: 表单
+  edgar.tableReportDate: 报告日期
+  edgar.tableDescription: 描述
+  edgar.tableAction: 操作
+  edgar.selectCompanyHint: 选择公司查看文件。
+  edgar.searching: 正在搜索 EDGAR…
+  edgar.loadingFilings: 加载文件中…
+  edgar.noRegistrant: 未找到该代码对应的 SEC 注册公司，请尝试使用公司名称。
+  edgar.noCompanies: 未找到公司，请尝试其他代码或名称。
+  edgar.noFilings: 该公司暂无文件。
+  edgar.companyLabel: "公司：{ticker} – {name}（CIK：{cik}）"
+  edgar.download: 下载
+  edgar.downloading: 下载中…
+  edgar.viewReport: 查看报告
+  edgar.preparing: 准备中…
+
+  # Loading & errors
+  loading.text: 加载中…
+  error.searchFailed: 搜索失败
+  error.loadQuoteFailed: 加载报价失败
+  error.financialsFailed: 财务数据不可用
+  error.etfFailed: ETF 数据不可用。
+  error.edgarSearchFailed: EDGAR 搜索失败
+  error.searchFailedShort: 搜索失败。
+  error.loadFilingsFailed: 加载文件失败
+  error.downloadFailed: 下载失败
+  error.secFilingsFailed: 加载 SEC 文件失败
+  error.secRateLimit: SEC 请求过于频繁，请稍后再试。
+  error.invalidCik: 无效的 CIK
+  error.noDocument: 该文件暂无可用文档
