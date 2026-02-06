@@ -277,6 +277,9 @@ async function getCompanyFilings (cik, forms) {
   const primaryDocs = filings.primaryDocument || []
   const descriptions = filings.primaryDocDescription || []
 
+  const MAX_WITH_FILTER = 200
+  const MAX_NO_FILTER = 1000
+
   for (let i = 0; i < accessions.length; i++) {
     const form = String(formsArr[i] || '').toUpperCase()
     if (filterForms && !filterForms.has(form)) continue
@@ -292,7 +295,8 @@ async function getCompanyFilings (cik, forms) {
       description: descriptions[i] || null
     })
 
-    if (result.length >= 100) break
+    if (filterForms && result.length >= MAX_WITH_FILTER) break
+    if (!filterForms && result.length >= MAX_NO_FILTER) break
   }
 
   return result

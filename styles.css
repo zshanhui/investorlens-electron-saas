@@ -688,6 +688,10 @@ tbody tr:hover {
   display: none;
 }
 
+.hint.hidden {
+  display: none;
+}
+
 .error {
   background: var(--red);
   color: #fff;
@@ -711,6 +715,41 @@ tbody tr:hover {
 
 .edgar-search-bar.hidden {
   display: none;
+}
+
+.edgar-cache-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.edgar-cache-label {
+  font-weight: 500;
+}
+
+.edgar-refresh-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle, var(--border));
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.edgar-refresh-btn:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--accent);
+}
+
+.edgar-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .edgar-search-bar input {

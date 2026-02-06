@@ -35,6 +35,41 @@ const loadYahooFinance = async () => {
 // ----- FinancialModelingPrep (FMP) client -----
 
 const FMP_BASE_URL = 'https://financialmodelingprep.com'
+const STOCK_CACHE_TTL_MS = 60 * 1000 // 1 minute
+
+// Simple in-memory caches by ticker (and date range for historical)
+const quoteCache = new Map()       // key: SYMBOL -> { data, fetchedAt }
+const historicalCache = new Map()  // key: SYMBOL|FROM|TO -> { data, fetchedAt }
+const financialsCache = new Map()  // key: SYMBOL -> { data, fetchedAt }
+const etfCache = new Map()         // key: SYMBOL -> { data, fetchedAt }
+
+const STOCK_DEBUG = process.env.DEBUG_STOCK === '1'
+
+function logStockEvent (event) {
+  if (!STOCK_DEBUG) return
+  try {
+    console.log(JSON.stringify({
+      ts: new Date().toISOString(),
+      ...event
+    }))
+  } catch (_) {
+    // best-effort logging only
+  }
+}
+
+function getCacheEntry (map, key) {
+  const entry = map.get(key)
+  if (!entry) return null
+  if (Date.now() - entry.fetchedAt > STOCK_CACHE_TTL_MS) {
+    map.delete(key)
+    return null
+  }
+  return entry
+}
+
+function setCacheEntry (map, key, data) {
+  map.set(key, { data, fetchedAt: Date.now() })
+}
 
 function getFmpApiKey () {
   const key = process.env.FMP_API_KEY
@@ -337,139 +372,421 @@ const createWindow = () => {
 
 ipcMain.handle('stock:search', async (_event, query) => {
   // Try FMP first, then fall back to Yahoo search if anything fails.
+  const q = String(query || '').trim()
   try {
-    const fmpResults = await fetchFmpSearch(query)
+    const fmpResults = await fetchFmpSearch(q)
     if (Array.isArray(fmpResults) && fmpResults.length > 0) {
+      logStockEvent({
+        kind: 'response',
+        endpoint: 'search',
+        source: 'fmp',
+        query: q,
+        ok: true,
+        count: fmpResults.length
+      })
       return { ok: true, data: fmpResults }
     }
   } catch (err) {
     console.warn('FMP search failed, falling back to Yahoo Finance:', err.message)
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'search',
+      source: 'fmp',
+      query: q,
+      ok: false,
+      error: err.message
+    })
   }
 
   try {
     const yf = await loadYahooFinance()
-    const results = await yf.search(query)
+    const results = await yf.search(q)
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'search',
+      source: 'yahoo',
+      query: q,
+      ok: true,
+      count: Array.isArray(results) ? results.length : (results?.quotes || []).length
+    })
     return { ok: true, data: results }
   } catch (err) {
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'search',
+      source: 'yahoo',
+      query: q,
+      ok: false,
+      error: err.message
+    })
     return { ok: false, error: err.message }
   }
 })
 
 ipcMain.handle('stock:quote', async (_event, symbol) => {
+  const sym = String(symbol || '').trim().toUpperCase()
+  if (!sym) {
+    return { ok: false, error: 'Missing symbol' }
+  }
+
+  // Serve from cache if still fresh
+  const cached = getCacheEntry(quoteCache, sym)
+  if (cached) {
+    logStockEvent({
+      kind: 'cache-hit',
+      endpoint: 'quote',
+      symbol: sym,
+      ageMs: Date.now() - cached.fetchedAt
+    })
+    return {
+      ok: true,
+      data: cached.data,
+      lastUpdated: new Date(cached.fetchedAt).toISOString()
+    }
+  }
+
+  let data
+
   // Try FMP quote first, then fall back to Yahoo.
+  let source = null
   try {
-    const fmpQuote = await fetchFmpQuote(symbol)
-    return { ok: true, data: fmpQuote }
+    data = await fetchFmpQuote(sym)
+    source = 'fmp'
   } catch (err) {
     console.warn('FMP quote failed, falling back to Yahoo Finance:', err.message)
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'quote',
+      source: 'fmp',
+      symbol: sym,
+      ok: false,
+      error: err.message
+    })
   }
 
   try {
-    const yf = await loadYahooFinance()
-    const quote = await yf.quote(symbol)
-    // Fetch summaryDetail for P/S (priceToSalesTrailing12Months); quote() already has P/E, P/B
-    try {
-      const summary = await yf.quoteSummary(symbol, { modules: ['summaryDetail'] })
-      const sd = summary.summaryDetail
-      if (sd && sd.priceToSalesTrailing12Months != null) {
-        quote.priceToSalesTrailing12Months = sd.priceToSalesTrailing12Months
-      }
-    } catch (_) {}
-    return { ok: true, data: quote }
+    if (!data) {
+      const yf = await loadYahooFinance()
+      const quote = await yf.quote(sym)
+      // Fetch summaryDetail for P/S (priceToSalesTrailing12Months); quote() already has P/E, P/B
+      try {
+        const summary = await yf.quoteSummary(sym, { modules: ['summaryDetail'] })
+        const sd = summary.summaryDetail
+        if (sd && sd.priceToSalesTrailing12Months != null) {
+          quote.priceToSalesTrailing12Months = sd.priceToSalesTrailing12Months
+        }
+      } catch (_) {}
+      data = quote
+      source = 'yahoo'
+    }
+
+    setCacheEntry(quoteCache, sym, data)
+    const entry = getCacheEntry(quoteCache, sym)
+    const fetchedAt = entry?.fetchedAt || Date.now()
+
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'quote',
+      source: source || 'unknown',
+      symbol: sym,
+      ok: true
+    })
+
+    return {
+      ok: true,
+      data,
+      lastUpdated: new Date(fetchedAt).toISOString()
+    }
   } catch (err) {
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'quote',
+      source: source || 'unknown',
+      symbol: sym,
+      ok: false,
+      error: err.message
+    })
     return { ok: false, error: err.message }
   }
 })
 
 ipcMain.handle('stock:historical', async (_event, symbol, period1, period2) => {
   // Try FMP daily EOD first, then fall back to Yahoo historical.
+  const sym = String(symbol || '').trim().toUpperCase()
+  if (!sym) {
+    return { ok: false, error: 'Missing symbol' }
+  }
+
+  const key = [sym, period1 || '', period2 || ''].join('|')
+  const cached = getCacheEntry(historicalCache, key)
+  if (cached) {
+    logStockEvent({
+      kind: 'cache-hit',
+      endpoint: 'historical',
+      symbol: sym,
+      period1,
+      period2,
+      ageMs: Date.now() - cached.fetchedAt
+    })
+    return {
+      ok: true,
+      data: cached.data,
+      lastUpdated: new Date(cached.fetchedAt).toISOString()
+    }
+  }
+
+  let data = null
+
+  let source = null
   try {
-    const history = await fetchFmpHistorical(symbol, period1, period2)
+    const history = await fetchFmpHistorical(sym, period1, period2)
     if (Array.isArray(history) && history.length > 0) {
-      return { ok: true, data: history }
+      data = history
+      source = 'fmp'
     }
   } catch (err) {
     console.warn('FMP historical failed, falling back to Yahoo Finance:', err.message)
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'historical',
+      source: 'fmp',
+      symbol: sym,
+      period1,
+      period2,
+      ok: false,
+      error: err.message
+    })
   }
 
   try {
-    const yf = await loadYahooFinance()
-    const history = await yf.historical(symbol, { period1, period2 })
-    return { ok: true, data: history }
+    if (!data) {
+      const yf = await loadYahooFinance()
+      const history = await yf.historical(sym, { period1, period2 })
+      data = history
+      source = 'yahoo'
+    }
+
+    setCacheEntry(historicalCache, key, data)
+    const entry = getCacheEntry(historicalCache, key)
+    const fetchedAt = entry?.fetchedAt || Date.now()
+
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'historical',
+      source: source || 'unknown',
+      symbol: sym,
+      period1,
+      period2,
+      ok: true,
+      count: Array.isArray(data) ? data.length : 0
+    })
+
+    return {
+      ok: true,
+      data,
+      lastUpdated: new Date(fetchedAt).toISOString()
+    }
   } catch (err) {
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'historical',
+      source: source || 'unknown',
+      symbol: sym,
+      period1,
+      period2,
+      ok: false,
+      error: err.message
+    })
     return { ok: false, error: err.message }
   }
 })
 
 ipcMain.handle('stock:financials', async (_event, symbol) => {
   // Try FMP financial statements first, then fall back to Yahoo quoteSummary.
+  const sym = String(symbol || '').trim().toUpperCase()
+  if (!sym) {
+    return { ok: false, error: 'Missing symbol' }
+  }
+
+  const cached = getCacheEntry(financialsCache, sym)
+  if (cached) {
+    logStockEvent({
+      kind: 'cache-hit',
+      endpoint: 'financials',
+      symbol: sym,
+      ageMs: Date.now() - cached.fetchedAt
+    })
+    return {
+      ok: true,
+      data: cached.data,
+      lastUpdated: new Date(cached.fetchedAt).toISOString()
+    }
+  }
+
+  let data = null
+
+  let source = null
   try {
-    const fmpData = await fetchFmpFinancials(symbol)
+    const fmpData = await fetchFmpFinancials(sym)
     const hasAny =
       (Array.isArray(fmpData.incomeAnnual) && fmpData.incomeAnnual.length > 0) ||
       (Array.isArray(fmpData.balanceAnnual) && fmpData.balanceAnnual.length > 0)
 
     if (hasAny) {
-      return { ok: true, data: fmpData }
+      data = fmpData
+      source = 'fmp'
     }
   } catch (err) {
     console.warn('FMP financials failed, falling back to Yahoo Finance:', err.message)
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'financials',
+      source: 'fmp',
+      symbol: sym,
+      ok: false,
+      error: err.message
+    })
   }
 
   try {
-    const yf = await loadYahooFinance()
-    const raw = await yf.quoteSummary(symbol, {
-      modules: [
-        'incomeStatementHistory',
-        'incomeStatementHistoryQuarterly',
-        'balanceSheetHistory',
-        'balanceSheetHistoryQuarterly'
-      ]
-    })
+    if (!data) {
+      const yf = await loadYahooFinance()
+      const raw = await yf.quoteSummary(sym, {
+        modules: [
+          'incomeStatementHistory',
+          'incomeStatementHistoryQuarterly',
+          'balanceSheetHistory',
+          'balanceSheetHistoryQuarterly'
+        ]
+      })
 
-    const incomeAnnual = raw.incomeStatementHistory?.incomeStatementHistory || []
-    const incomeQuarterly = raw.incomeStatementHistoryQuarterly?.incomeStatementHistory || []
-    const balanceAnnual = raw.balanceSheetHistory?.balanceSheetStatements || []
-    const balanceQuarterly = raw.balanceSheetHistoryQuarterly?.balanceSheetStatements || []
+      const incomeAnnual = raw.incomeStatementHistory?.incomeStatementHistory || []
+      const incomeQuarterly = raw.incomeStatementHistoryQuarterly?.incomeStatementHistory || []
+      const balanceAnnual = raw.balanceSheetHistory?.balanceSheetStatements || []
+      const balanceQuarterly = raw.balanceSheetHistoryQuarterly?.balanceSheetStatements || []
 
-    return {
-      ok: true,
-      data: {
+      data = {
         incomeAnnual,
         incomeQuarterly,
         balanceAnnual,
         balanceQuarterly
       }
+      source = 'yahoo'
+    }
+
+    setCacheEntry(financialsCache, sym, data)
+    const entry = getCacheEntry(financialsCache, sym)
+    const fetchedAt = entry?.fetchedAt || Date.now()
+
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'financials',
+      source: source || 'unknown',
+      symbol: sym,
+      ok: true
+    })
+
+    return {
+      ok: true,
+      data,
+      lastUpdated: new Date(fetchedAt).toISOString()
     }
   } catch (err) {
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'financials',
+      source: source || 'unknown',
+      symbol: sym,
+      ok: false,
+      error: err.message
+    })
     return { ok: false, error: err.message }
   }
 })
 
 ipcMain.handle('stock:etfDetails', async (_event, symbol) => {
   // Try FMP ETF info/holdings first, then fall back to Yahoo.
-  try {
-    const fmpEtf = await fetchFmpEtfDetails(symbol)
-    return { ok: true, data: fmpEtf }
-  } catch (err) {
-    console.warn('FMP ETF details failed, falling back to Yahoo Finance:', err.message)
+  const sym = String(symbol || '').trim().toUpperCase()
+  if (!sym) {
+    return { ok: false, error: 'Missing symbol' }
   }
 
-  try {
-    const yf = await loadYahooFinance()
-    const raw = await yf.quoteSummary(symbol, {
-      modules: ['fundProfile', 'topHoldings', 'fundPerformance', 'quoteType']
+  const cached = getCacheEntry(etfCache, sym)
+  if (cached) {
+    logStockEvent({
+      kind: 'cache-hit',
+      endpoint: 'etfDetails',
+      symbol: sym,
+      ageMs: Date.now() - cached.fetchedAt
     })
     return {
       ok: true,
-      data: {
+      data: cached.data,
+      lastUpdated: new Date(cached.fetchedAt).toISOString()
+    }
+  }
+
+  let data = null
+
+  let source = null
+  try {
+    const fmpEtf = await fetchFmpEtfDetails(sym)
+    data = fmpEtf
+    source = 'fmp'
+  } catch (err) {
+    console.warn('FMP ETF details failed, falling back to Yahoo Finance:', err.message)
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'etfDetails',
+      source: 'fmp',
+      symbol: sym,
+      ok: false,
+      error: err.message
+    })
+  }
+
+  try {
+    if (!data) {
+      const yf = await loadYahooFinance()
+      const raw = await yf.quoteSummary(sym, {
+        modules: ['fundProfile', 'topHoldings', 'fundPerformance', 'quoteType']
+      })
+      data = {
         fundProfile: raw.fundProfile,
         topHoldings: raw.topHoldings,
         fundPerformance: raw.fundPerformance,
         quoteType: raw.quoteType
       }
+      source = 'yahoo'
+    }
+
+    setCacheEntry(etfCache, sym, data)
+    const entry = getCacheEntry(etfCache, sym)
+    const fetchedAt = entry?.fetchedAt || Date.now()
+
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'etfDetails',
+      source: source || 'unknown',
+      symbol: sym,
+      ok: true,
+      holdingsCount: Array.isArray(data?.topHoldings?.holdings) ? data.topHoldings.holdings.length : undefined
+    })
+
+    return {
+      ok: true,
+      data,
+      lastUpdated: new Date(fetchedAt).toISOString()
     }
   } catch (err) {
+    logStockEvent({
+      kind: 'response',
+      endpoint: 'etfDetails',
+      source: source || 'unknown',
+      symbol: sym,
+      ok: false,
+      error: err.message
+    })
     return { ok: false, error: err.message }
   }
 })
@@ -653,6 +970,49 @@ async function checkAlerts () {
 }
 
 // EDGAR SEC filings
+
+function ensureDirSync (dir) {
+  try {
+    fs.mkdirSync(dir, { recursive: true })
+  } catch (_) {}
+}
+
+function getEdgarFilingsCachePath (cik) {
+  const userData = app.getPath('userData')
+  const dir = path.join(userData, 'edgar-filings')
+  ensureDirSync(dir)
+  const safeCik = String(cik || '').replace(/[^0-9]/g, '') || 'unknown'
+  return path.join(dir, `${safeCik}.json`)
+}
+
+function loadEdgarFilingsCache (cik) {
+  const cachePath = getEdgarFilingsCachePath(cik)
+  if (!fs.existsSync(cachePath)) return null
+  try {
+    const raw = fs.readFileSync(cachePath, 'utf8')
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed || !Array.isArray(parsed.filings)) return null
+    return parsed
+  } catch (_) {
+    return null
+  }
+}
+
+function saveEdgarFilingsCache (cik, payload) {
+  const cachePath = getEdgarFilingsCachePath(cik)
+  const normalized = {
+    lastFetchedAt: payload.lastFetchedAt || new Date().toISOString(),
+    filings: Array.isArray(payload.filings) ? payload.filings : []
+  }
+  try {
+    fs.writeFileSync(cachePath, JSON.stringify(normalized, null, 2), 'utf8')
+  } catch (_) {
+    console.error('Failed to save EDGAR filings cache:', _.message || _)
+  }
+  return normalized
+}
+
 ipcMain.handle('edgar:searchCompany', async (_event, query) => {
   try {
     const companies = await getEdgarService().searchCompany(query)
@@ -663,10 +1023,44 @@ ipcMain.handle('edgar:searchCompany', async (_event, query) => {
   }
 })
 
-ipcMain.handle('edgar:getFilings', async (_event, { cik, forms }) => {
+ipcMain.handle('edgar:getFilings', async (_event, { cik, forms, forceRefresh }) => {
   try {
-    const filings = await getEdgarService().getCompanyFilings(cik, forms)
-    return { ok: true, data: filings }
+    if (!cik) {
+      throw new Error('Invalid CIK')
+    }
+
+    let base = null
+    if (!forceRefresh) {
+      base = loadEdgarFilingsCache(cik)
+    }
+
+    if (!base) {
+      const allFilings = await getEdgarService().getCompanyFilings(cik, [])
+      const payload = {
+        lastFetchedAt: new Date().toISOString(),
+        filings: Array.isArray(allFilings) ? allFilings : []
+      }
+      base = saveEdgarFilingsCache(cik, payload)
+    }
+
+    const filterForms =
+      Array.isArray(forms) && forms.length > 0
+        ? new Set(forms.map((f) => String(f || '').toUpperCase()))
+        : null
+
+    const filtered = filterForms
+      ? base.filings.filter((f) =>
+          filterForms.has(String(f.form || '').toUpperCase())
+        )
+      : base.filings.slice()
+
+    return {
+      ok: true,
+      data: {
+        lastFetchedAt: base.lastFetchedAt || null,
+        filings: filtered
+      }
+    }
   } catch (err) {
     console.error('edgar:getFilings', err)
     return { ok: false, error: err.message }

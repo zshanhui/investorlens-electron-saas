@@ -85,6 +85,28 @@ function pickQuoteNumber (q, keys) {
   return null
 }
 
+function renderQuoteLastUpdated (result) {
+  if (!App.dom.quoteUpdated) return
+  const ts = result && result.lastUpdated
+  if (!ts) {
+    App.dom.quoteUpdated.textContent = ''
+    return
+  }
+  const t = new Date(ts)
+  if (Number.isNaN(t.getTime())) {
+    App.dom.quoteUpdated.textContent = ''
+    return
+  }
+  let diff = Math.floor((Date.now() - t.getTime()) / 1000)
+  if (!Number.isFinite(diff)) {
+    App.dom.quoteUpdated.textContent = ''
+    return
+  }
+  if (diff < 0) diff = 0
+  if (diff > 60) diff = 60
+  App.dom.quoteUpdated.textContent = `Updated ${diff}s ago`
+}
+
 async function doSearch () {
   const query = App.dom.searchInput.value.trim()
   if (!query) return
@@ -131,16 +153,29 @@ async function doSearch () {
 async function selectSymbol (symbol) {
   if (!symbol) return
 
+  // Remember which detail panel is currently active so we can preserve it
+  if (App.dom.quotePanel && App.dom.financialsPanel && App.dom.edgarPanel && App.dom.etfPanel) {
+    if (!App.dom.quotePanel.classList.contains('hidden')) {
+      App.state.currentDetailPanel = 'quote'
+    } else if (!App.dom.financialsPanel.classList.contains('hidden')) {
+      App.state.currentDetailPanel = 'financials'
+    } else if (!App.dom.edgarPanel.classList.contains('hidden')) {
+      App.state.currentDetailPanel = 'edgar'
+    } else if (!App.dom.etfPanel.classList.contains('hidden')) {
+      App.state.currentDetailPanel = 'etf'
+    }
+  }
+
   App.state.currentSymbol = symbol
   App.state.financialsLoadedFor = null
   App.state.etfDetailsLoadedFor = null
 
   App.dom.detailHint.classList.add('hidden')
-  App.dom.quotePanel.classList.remove('hidden')
   App.dom.quoteSymbol.textContent = symbol
   App.dom.quoteName.textContent = App.t('quote.loading')
   App.dom.quotePrice.textContent = '—'
   App.dom.quoteChange.textContent = ''
+  if (App.dom.quoteUpdated) App.dom.quoteUpdated.textContent = ''
   if (App.dom.quoteValuation) App.dom.quoteValuation.innerHTML = ''
   if (App.dom.quoteMovement) App.dom.quoteMovement.innerHTML = ''
   App.dom.historyBody.innerHTML = ''
@@ -168,6 +203,7 @@ async function selectSymbol (symbol) {
   if (!quoteResult.ok) {
     App.utils.showError(App.utils.translateError(quoteResult.error) || App.t('error.loadQuoteFailed'))
     App.dom.quoteName.textContent = App.t('quote.failedToLoad')
+    if (App.dom.quoteUpdated) App.dom.quoteUpdated.textContent = ''
     return
   }
 
@@ -218,6 +254,8 @@ async function selectSymbol (symbol) {
     .map(([label, val, fmt]) => `<div class="meta-item"><span class="meta-label">${App.utils.escapeHtml(label)}</span> ${(fmt || App.utils.formatNum)(val)}</div>`)
     .join('')
 
+  renderQuoteLastUpdated(quoteResult)
+
   if (histResult.ok && Array.isArray(histResult.data) && histResult.data.length > 0) {
     const rows = histResult.data.slice(-30).reverse()
     App.dom.historyBody.innerHTML = rows
@@ -231,6 +269,34 @@ async function selectSymbol (symbol) {
 
   if (App.alerts && typeof App.alerts.refreshForCurrentSymbol === 'function') {
     App.alerts.refreshForCurrentSymbol()
+  }
+
+  // After quote has loaded, restore the previously active detail panel if it is valid
+  if (App.state.currentDetailPanel === 'financials') {
+    // For ETFs, financials are hidden; fall back to quote
+    if (!App.state.currentIsEtf) {
+      showPanel('financials')
+      // Trigger lazy load for new symbol if needed
+      if (App.dom.tabFinancials) {
+        App.dom.tabFinancials.click()
+      }
+    } else {
+      showPanel('quote')
+    }
+  } else if (App.state.currentDetailPanel === 'edgar') {
+    if (!App.state.currentIsEtf && App.dom.tabEdgar) {
+      App.dom.tabEdgar.click()
+    } else {
+      showPanel('quote')
+    }
+  } else if (App.state.currentDetailPanel === 'etf') {
+    if (App.state.currentIsEtf && App.dom.tabEtf) {
+      App.dom.tabEtf.click()
+    } else {
+      showPanel('quote')
+    }
+  } else {
+    showPanel('quote')
   }
 }
 
@@ -359,6 +425,7 @@ App.dom.etfTiles.forEach((tile) => {
 App.dom.tabQuote.addEventListener('click', () => showPanel('quote'))
 
 App.dom.tabFinancials.addEventListener('click', () => {
+  App.state.currentDetailPanel = 'financials'
   showPanel('financials')
   if (!App.state.currentSymbol) {
     App.dom.financialsStatus.textContent = App.t('financials.selectHint')
@@ -402,6 +469,7 @@ App.dom.subtabBalance.addEventListener('click', () => {
 
 if (App.dom.tabEtf) {
   App.dom.tabEtf.addEventListener('click', () => {
+    App.state.currentDetailPanel = 'etf'
     showPanel('etf')
     if (!App.state.currentSymbol) {
       App.dom.etfStatus.textContent = App.t('etf.selectHint')
@@ -436,6 +504,7 @@ if (App.dom.tabEtf) {
 
 if (App.dom.tabEdgar) {
   App.dom.tabEdgar.addEventListener('click', () => {
+    App.state.currentDetailPanel = 'edgar'
     showPanel('edgar')
     if (App.state.currentSymbol && window.edgar) {
       if (App.dom.edgarSearchBar) App.dom.edgarSearchBar.classList.add('hidden')
@@ -468,6 +537,7 @@ if (App.dom.openAlertsScreenBtn && App.dom.alertsScreen && App.dom.alertsBackBtn
   App.dom.alertsBackBtn.addEventListener('click', () => {
     if (App.dom.alertsScreen) App.dom.alertsScreen.classList.add('hidden')
     if (App.dom.detailTabs) App.dom.detailTabs.classList.remove('hidden')
+    App.state.currentDetailPanel = 'quote'
     showPanel('quote')
   })
 }

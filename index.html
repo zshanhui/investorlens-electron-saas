@@ -115,7 +115,7 @@
         <div class="detail-header">
           <h2 data-i18n="detail.title">Details</h2>
           <button type="button" id="openAlertsScreenBtn" class="detail-alerts-btn" aria-label="Create price alert">
-            +
+            🔔
           </button>
         </div>
 
@@ -171,6 +171,9 @@
           <div class="quote-price-row">
             <span id="quotePrice" class="price"></span>
             <span id="quoteChange" class="change"></span>
+          </div>
+          <div class="quote-updated-row">
+            <span id="quoteUpdated" class="quote-updated"></span>
           </div>
           <div id="historyChartContainer" class="history-chart-container">
             <h3 class="history-chart-title" data-i18n="quote.priceHistory">Price History (1Y)</h3>
@@ -255,6 +258,13 @@
             <input type="text" id="edgarSearchInput" data-i18n-placeholder="edgar.searchPlaceholder"
               placeholder="Ticker or company name (e.g. AAPL, Apple)" autocomplete="off" />
             <button type="button" id="edgarSearchBtn" data-i18n="edgar.searchBtn">Search EDGAR</button>
+          </div>
+          <div class="edgar-cache-info">
+            <span class="edgar-cache-label" data-i18n="edgar.lastFetchedLabel">Last fetched:</span>
+            <span id="edgarLastFetched" class="edgar-cache-value">—</span>
+            <button type="button" id="edgarRefreshBtn" class="edgar-refresh-btn" data-i18n="edgar.refresh">
+              Refresh from SEC
+            </button>
           </div>
           <div id="edgarCompanyList" class="edgar-company-list hidden"></div>
           <div id="edgarSelectedCompany" class="edgar-selected hidden"></div>

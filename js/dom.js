@@ -22,6 +22,7 @@
   quoteName: document.getElementById('quoteName'),
   quotePrice: document.getElementById('quotePrice'),
   quoteChange: document.getElementById('quoteChange'),
+  quoteUpdated: document.getElementById('quoteUpdated'),
   quoteValuation: document.getElementById('quoteValuation'),
   quoteMovement: document.getElementById('quoteMovement'),
   historyBody: document.getElementById('historyBody'),
@@ -46,6 +47,8 @@
   edgarFilingsWrap: document.getElementById('edgarFilingsWrap'),
   edgarFilingsBody: document.getElementById('edgarFilingsBody'),
   edgarFilingsHint: document.getElementById('edgarFilingsHint'),
+  edgarLastFetched: document.getElementById('edgarLastFetched'),
+  edgarRefreshBtn: document.getElementById('edgarRefreshBtn'),
   financialsStatus: document.getElementById('financialsStatus'),
   incomeHead: document.getElementById('incomeHead'),
   incomeBody: document.getElementById('incomeBody'),
@@ -76,7 +79,9 @@ App.state = {
   etfDetailsLoadedFor: null,
   historyChartInstance: null,
   currentEdgarCompany: null,
-  edgarFilings: []
+  edgarFilings: [],
+  edgarLastFetchedAt: null,
+  currentDetailPanel: 'quote'
 }
 
   App.t = (k) => k

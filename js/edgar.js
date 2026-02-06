@@ -96,7 +96,8 @@ async function doEdgarSearch () {
   })
 }
 
-async function selectEdgarCompany (company) {
+async function selectEdgarCompany (company, options = {}) {
+  const { forceRefresh = false } = options
   App.state.currentEdgarCompany = company
   if (App.dom.edgarCompanyList) {
     App.dom.edgarCompanyList.classList.add('hidden')
@@ -120,7 +121,7 @@ async function selectEdgarCompany (company) {
   App.utils.showError(null)
 
   const forms = getEdgarFormFilter()
-  const result = await window.edgar.getFilings({ cik: company.cik, forms })
+  const result = await window.edgar.getFilings({ cik: company.cik, forms, forceRefresh })
   App.utils.showLoading(false)
 
   if (!result.ok) {
@@ -129,7 +130,26 @@ async function selectEdgarCompany (company) {
     return
   }
 
-  App.state.edgarFilings = result.data || []
+  const payload = result.data || {}
+  App.state.edgarFilings = payload.filings || []
+  App.state.edgarLastFetchedAt = payload.lastFetchedAt || null
+
+  if (App.dom.edgarLastFetched) {
+    if (App.state.edgarLastFetchedAt) {
+      try {
+        const dt = new Date(App.state.edgarLastFetchedAt)
+        if (!Number.isNaN(dt.getTime())) {
+          App.dom.edgarLastFetched.textContent = dt.toLocaleString()
+        } else {
+          App.dom.edgarLastFetched.textContent = '—'
+        }
+      } catch (_) {
+        App.dom.edgarLastFetched.textContent = '—'
+      }
+    } else {
+      App.dom.edgarLastFetched.textContent = '—'
+    }
+  }
   if (App.dom.edgarFilingsHint) App.dom.edgarFilingsHint.classList.add('hidden')
   if (App.state.edgarFilings.length === 0) {
     if (App.dom.edgarFilingsHint) {
@@ -226,9 +246,29 @@ if (App.dom.edgarSearchInput) {
     if (e.key === 'Enter') doEdgarSearch()
   })
 }
-  if (App.dom.edgarFormFilter) {
-    App.dom.edgarFormFilter.addEventListener('change', () => {
-      if (App.state.currentEdgarCompany) selectEdgarCompany(App.state.currentEdgarCompany)
-    })
-  }
+if (App.dom.edgarFormFilter) {
+  App.dom.edgarFormFilter.addEventListener('change', () => {
+    if (App.state.currentEdgarCompany) selectEdgarCompany(App.state.currentEdgarCompany)
+  })
+}
+
+if (App.dom.edgarRefreshBtn) {
+  App.dom.edgarRefreshBtn.addEventListener('click', () => {
+    if (!App.state.currentEdgarCompany) return
+    const btn = App.dom.edgarRefreshBtn
+    const originalText = btn.textContent
+    btn.disabled = true
+    btn.textContent = App.t('edgar.refreshing')
+    ;(async () => {
+      try {
+        await selectEdgarCompany(App.state.currentEdgarCompany, { forceRefresh: true })
+      } catch (_) {
+        // Errors are already surfaced in selectEdgarCompany
+      } finally {
+        btn.disabled = false
+        btn.textContent = App.t('edgar.refresh') || originalText
+      }
+    })()
+  })
+}
 })()
