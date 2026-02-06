@@ -47,6 +47,14 @@ ipcMain.handle('stock:quote', async (_event, symbol) => {
   try {
     const yf = await loadYahooFinance()
     const quote = await yf.quote(symbol)
+    // Fetch summaryDetail for P/S (priceToSalesTrailing12Months); quote() already has P/E, P/B
+    try {
+      const summary = await yf.quoteSummary(symbol, { modules: ['summaryDetail'] })
+      const sd = summary.summaryDetail
+      if (sd && sd.priceToSalesTrailing12Months != null) {
+        quote.priceToSalesTrailing12Months = sd.priceToSalesTrailing12Months
+      }
+    } catch (_) {}
     return { ok: true, data: quote }
   } catch (err) {
     return { ok: false, error: err.message }

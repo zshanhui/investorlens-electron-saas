@@ -14,7 +14,8 @@ const quoteSymbol = document.getElementById('quoteSymbol')
 const quoteName = document.getElementById('quoteName')
 const quotePrice = document.getElementById('quotePrice')
 const quoteChange = document.getElementById('quoteChange')
-const quoteMeta = document.getElementById('quoteMeta')
+const quoteValuation = document.getElementById('quoteValuation')
+const quoteMovement = document.getElementById('quoteMovement')
 const historyBody = document.getElementById('historyBody')
 const historyChart = document.getElementById('historyChart')
 
@@ -130,6 +131,13 @@ function formatPrice (n) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })
+}
+
+function formatRatio (n) {
+  if (n == null || n === '') return '—'
+  const x = Number(n)
+  if (Number.isNaN(x)) return '—'
+  return x.toFixed(2)
 }
 
 function escapeHtml (s) {
@@ -312,7 +320,8 @@ async function selectSymbol (symbol) {
   quoteName.textContent = 'Loading…'
   quotePrice.textContent = '—'
   quoteChange.textContent = ''
-  quoteMeta.innerHTML = ''
+  if (quoteValuation) quoteValuation.innerHTML = ''
+  if (quoteMovement) quoteMovement.innerHTML = ''
   historyBody.innerHTML = ''
   if (historyChart) historyChart.innerHTML = ''
   financialsStatus.textContent = 'Click the Financials tab to load statements.'
@@ -380,21 +389,36 @@ async function selectSymbol (symbol) {
     quoteChange.appendChild(changeEl)
   }
 
-  const metaFields = [
-    ['Market Cap', q.marketCap],
-    ['Volume', q.regularMarketVolume],
-    ['Day High', q.regularMarketDayHigh],
-    ['Day Low', q.regularMarketDayLow],
-    ['52w High', q.fiftyTwoWeekHigh],
-    ['52w Low', q.fiftyTwoWeekLow]
+  const valuationFields = [
+    ['Market Cap', q.marketCap, formatNum],
+    ['P/E (TTM)', q.trailingPE, formatRatio],
+    ['Forward P/E', q.forwardPE, formatRatio],
+    ['P/B', q.priceToBook, formatRatio],
+    ['P/S (TTM)', q.priceToSalesTrailing12Months, formatRatio]
   ]
-
-  quoteMeta.innerHTML = metaFields
+  quoteValuation.innerHTML = valuationFields
     .map(
-      ([label, val]) =>
+      ([label, val, fmt]) =>
         `<div class="meta-item">
            <span class="meta-label">${escapeHtml(label)}</span>
-           ${formatNum(val)}
+           ${(fmt || formatNum)(val)}
+         </div>`
+    )
+    .join('')
+
+  const movementFields = [
+    ['Volume', q.regularMarketVolume, formatNum],
+    ['Day High', q.regularMarketDayHigh, formatPrice],
+    ['Day Low', q.regularMarketDayLow, formatPrice],
+    ['52w High', q.fiftyTwoWeekHigh, formatPrice],
+    ['52w Low', q.fiftyTwoWeekLow, formatPrice]
+  ]
+  quoteMovement.innerHTML = movementFields
+    .map(
+      ([label, val, fmt]) =>
+        `<div class="meta-item">
+           <span class="meta-label">${escapeHtml(label)}</span>
+           ${(fmt || formatNum)(val)}
          </div>`
     )
     .join('')
@@ -516,6 +540,10 @@ etfTiles.forEach((tile) => {
     selectSymbol(symbol)
   })
 })
+
+// Auto-select NVDA on app start or refresh
+searchInput.value = 'NVDA'
+selectSymbol('NVDA')
 
 function updateDetailTabsForEtf () {
   if (!tabFinancials || !tabEdgar || !tabEtf) return

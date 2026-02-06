@@ -331,12 +331,29 @@ body.light-theme .quick-tile:hover {
   color: var(--red);
 }
 
+.quote-section {
+  margin-bottom: 20px;
+}
+
+.quote-section-title {
+  margin: 0 0 8px 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .quote-meta {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
   margin-bottom: 24px;
   font-size: 0.9rem;
+}
+
+.quote-section .quote-meta {
+  margin-bottom: 0;
 }
 
 .quote-meta .meta-item {
