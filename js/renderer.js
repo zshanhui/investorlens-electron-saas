@@ -1,0 +1,430 @@
+/**
+ * Main renderer: search, quote, financials, ETF, tabs, init.
+ */
+;(function () {
+  const App = window.App
+
+  function updateThemeToggleLabel () {
+  if (!App.dom.themeToggle) return
+  const isLight = document.body.classList.contains('light-theme')
+  App.dom.themeToggle.textContent = App.t(isLight ? 'theme.dark' : 'theme.light')
+}
+
+function applyThemeFromStorage () {
+  try {
+    const saved = window.localStorage.getItem('theme')
+    if (saved === 'light') document.body.classList.add('light-theme')
+    else if (saved === 'dark') document.body.classList.remove('light-theme')
+  } catch (_) {}
+  updateThemeToggleLabel()
+}
+
+if (App.dom.themeToggle) {
+  App.dom.themeToggle.addEventListener('click', () => {
+    const isLight = document.body.classList.toggle('light-theme')
+    try {
+      window.localStorage.setItem('theme', isLight ? 'light' : 'dark')
+    } catch (_) {}
+    updateThemeToggleLabel()
+    if (App.state.historyChartInstance) App.state.historyChartInstance.resize()
+  })
+}
+
+window.addEventListener('resize', () => {
+  if (App.state.historyChartInstance) App.state.historyChartInstance.resize()
+})
+
+function updateDetailTabsForEtf () {
+  if (!App.dom.tabFinancials || !App.dom.tabEdgar || !App.dom.tabEtf) return
+  if (App.state.currentIsEtf) {
+    App.dom.tabFinancials.classList.add('hidden')
+    App.dom.tabEdgar.classList.add('hidden')
+    App.dom.tabEtf.classList.remove('hidden')
+    if (App.dom.financialsPanel) App.dom.financialsPanel.classList.add('hidden')
+    if (App.dom.edgarPanel) App.dom.edgarPanel.classList.add('hidden')
+    if (App.dom.etfPanel) App.dom.etfPanel.classList.add('hidden')
+    App.dom.quotePanel.classList.remove('hidden')
+    App.dom.tabQuote.classList.add('active')
+    App.dom.tabFinancials.classList.remove('active')
+    App.dom.tabEdgar.classList.remove('active')
+  } else {
+    App.dom.tabFinancials.classList.remove('hidden')
+    App.dom.tabEdgar.classList.remove('hidden')
+    App.dom.tabEtf.classList.add('hidden')
+    if (App.dom.etfPanel) App.dom.etfPanel.classList.add('hidden')
+  }
+}
+
+async function doSearch () {
+  const query = App.dom.searchInput.value.trim()
+  if (!query) return
+
+  App.dom.resultsList.innerHTML = ''
+  App.dom.resultsHint.classList.add('hidden')
+  App.utils.showLoading(true)
+  App.utils.showError(null)
+
+  const result = await window.stockApi.search(query)
+  App.utils.showLoading(false)
+
+  if (!result.ok) {
+    App.utils.showError(App.utils.translateError(result.error) || App.t('error.searchFailed'))
+    App.dom.resultsHint.textContent = App.t('results.searchFailed')
+    App.dom.resultsHint.classList.remove('hidden')
+    return
+  }
+
+  const items = Array.isArray(result.data) ? result.data : (result.data?.quotes || [])
+  if (!items || items.length === 0) {
+    App.dom.resultsHint.textContent = App.t('results.noResults')
+    App.dom.resultsHint.classList.remove('hidden')
+    return
+  }
+
+  App.dom.resultsHint.classList.add('hidden')
+  items.forEach((item) => {
+    const div = document.createElement('div')
+    div.className = 'result-item'
+    div.innerHTML = `
+      <span class="symbol">${App.utils.escapeHtml(item.symbol || '')}</span>
+      <span class="type">${App.utils.escapeHtml(item.quoteType || '')}</span>
+      <span class="name">${App.utils.escapeHtml(item.shortname || item.longname || '')}</span>
+    `
+    div.addEventListener('click', () => selectSymbol(item.symbol))
+    App.dom.resultsList.appendChild(div)
+  })
+}
+
+async function selectSymbol (symbol) {
+  if (!symbol) return
+
+  App.state.currentSymbol = symbol
+  App.state.financialsLoadedFor = null
+  App.state.etfDetailsLoadedFor = null
+
+  App.dom.detailHint.classList.add('hidden')
+  App.dom.quotePanel.classList.remove('hidden')
+  App.dom.quoteSymbol.textContent = symbol
+  App.dom.quoteName.textContent = App.t('quote.loading')
+  App.dom.quotePrice.textContent = '—'
+  App.dom.quoteChange.textContent = ''
+  if (App.dom.quoteValuation) App.dom.quoteValuation.innerHTML = ''
+  if (App.dom.quoteMovement) App.dom.quoteMovement.innerHTML = ''
+  App.dom.historyBody.innerHTML = ''
+  if (App.dom.historyChart) App.dom.historyChart.innerHTML = ''
+  App.dom.financialsStatus.textContent = App.t('quote.clickFinancials')
+  App.dom.incomeHead.innerHTML = ''
+  App.dom.incomeBody.innerHTML = ''
+  App.dom.balanceHead.innerHTML = ''
+  App.dom.balanceBody.innerHTML = ''
+
+  App.utils.showLoading(true)
+  App.utils.showError(null)
+
+  const period2 = new Date()
+  const period1 = new Date()
+  period1.setFullYear(period1.getFullYear() - 1)
+
+  const [quoteResult, histResult] = await Promise.all([
+    window.stockApi.getQuote(symbol),
+    window.stockApi.getHistorical(symbol, period1.toISOString().slice(0, 10), period2.toISOString().slice(0, 10))
+  ])
+
+  App.utils.showLoading(false)
+
+  if (!quoteResult.ok) {
+    App.utils.showError(App.utils.translateError(quoteResult.error) || App.t('error.loadQuoteFailed'))
+    App.dom.quoteName.textContent = App.t('quote.failedToLoad')
+    return
+  }
+
+  const q = quoteResult.data
+  App.dom.quoteName.textContent = q.shortName || q.longName || symbol
+
+  App.state.currentIsEtf = String(q.quoteType || '').toUpperCase() === 'ETF'
+  updateDetailTabsForEtf()
+
+  const price = q.regularMarketPrice ?? q.price
+  App.dom.quotePrice.textContent = price != null ? App.utils.formatPrice(price) : '—'
+
+  const change = q.regularMarketChange
+  const changePercent = q.regularMarketChangePercent
+  App.dom.quoteChange.innerHTML = ''
+
+  if (change != null || changePercent != null) {
+    const changeEl = document.createElement('span')
+    const base = change ?? changePercent
+    const positive = Number(base) >= 0
+    changeEl.className = 'change ' + (positive ? 'positive' : 'negative')
+    let text = ''
+    if (change != null) text += (positive ? '+' : '') + App.utils.formatPrice(change)
+    if (changePercent != null) text += ' (' + (Number(changePercent) >= 0 ? '+' : '') + Number(changePercent).toFixed(2) + '%)'
+    changeEl.textContent = text
+    App.dom.quoteChange.appendChild(changeEl)
+  }
+
+  const valuationFields = [
+    [App.t('quote.marketCap'), q.marketCap, App.utils.formatNum],
+    [App.t('quote.peTtm'), q.trailingPE, App.utils.formatRatio],
+    [App.t('quote.forwardPe'), q.forwardPE, App.utils.formatRatio],
+    [App.t('quote.pb'), q.priceToBook, App.utils.formatRatio],
+    [App.t('quote.psTtm'), q.priceToSalesTrailing12Months, App.utils.formatRatio]
+  ]
+  App.dom.quoteValuation.innerHTML = valuationFields
+    .map(([label, val, fmt]) => `<div class="meta-item"><span class="meta-label">${App.utils.escapeHtml(label)}</span> ${(fmt || App.utils.formatNum)(val)}</div>`)
+    .join('')
+
+  const movementFields = [
+    [App.t('quote.volume'), q.regularMarketVolume, App.utils.formatNum],
+    [App.t('quote.dayHigh'), q.regularMarketDayHigh, App.utils.formatPrice],
+    [App.t('quote.dayLow'), q.regularMarketDayLow, App.utils.formatPrice],
+    [App.t('quote.w52High'), q.fiftyTwoWeekHigh, App.utils.formatPrice],
+    [App.t('quote.w52Low'), q.fiftyTwoWeekLow, App.utils.formatPrice]
+  ]
+  App.dom.quoteMovement.innerHTML = movementFields
+    .map(([label, val, fmt]) => `<div class="meta-item"><span class="meta-label">${App.utils.escapeHtml(label)}</span> ${(fmt || App.utils.formatNum)(val)}</div>`)
+    .join('')
+
+  if (histResult.ok && Array.isArray(histResult.data) && histResult.data.length > 0) {
+    const rows = histResult.data.slice(-30).reverse()
+    App.dom.historyBody.innerHTML = rows
+      .map((r) => `<tr><td>${App.utils.formatDate(r.date)}</td><td>${App.utils.formatPrice(r.open)}</td><td>${App.utils.formatPrice(r.high)}</td><td>${App.utils.formatPrice(r.low)}</td><td>${App.utils.formatPrice(r.close)}</td><td>${App.utils.formatNum(r.volume)}</td></tr>`)
+      .join('')
+    App.renderHistoryChart(histResult.data)
+  } else {
+    App.dom.historyBody.innerHTML = '<tr><td colspan="6">' + App.t('history.noHistory') + '</td></tr>'
+    App.renderHistoryChart([])
+  }
+}
+
+function renderFinancials (data) {
+  const income = (data.incomeAnnual || []).slice(0, 4)
+  const balance = (data.balanceAnnual || []).slice(0, 4)
+
+  if (income.length === 0 && balance.length === 0) {
+    App.dom.financialsStatus.textContent = App.t('financials.unavailable')
+    return
+  }
+
+  App.dom.financialsStatus.textContent = App.t('financials.showingPeriods')
+
+  if (income.length > 0) {
+    const periods = income.map(r => App.utils.formatDate(r.endDate || r.date))
+    App.dom.incomeHead.innerHTML = '<tr><th>' + App.t('financials.lineItem') + '</th>' + periods.map(p => `<th>${p}</th>`).join('') + '</tr>'
+    const fields = [
+      [App.t('financials.totalRevenue'), 'totalRevenue'],
+      [App.t('financials.grossProfit'), 'grossProfit'],
+      [App.t('financials.operatingIncome'), 'operatingIncome'],
+      [App.t('financials.netIncome'), 'netIncome']
+    ]
+    App.dom.incomeBody.innerHTML = fields
+      .map(([label, key]) => {
+        const cells = income.map(r => `<td>${App.utils.formatNum(r[key])}</td>`).join('')
+        return `<tr><td>${App.utils.escapeHtml(label)}</td>${cells}</tr>`
+      })
+      .join('')
+  }
+
+  if (balance.length > 0) {
+    const periods = balance.map(r => App.utils.formatDate(r.endDate || r.date))
+    App.dom.balanceHead.innerHTML = '<tr><th>' + App.t('financials.lineItem') + '</th>' + periods.map(p => `<th>${p}</th>`).join('') + '</tr>'
+    const fields = [
+      [App.t('financials.totalAssets'), 'totalAssets'],
+      [App.t('financials.totalLiabilities'), 'totalLiab'],
+      [App.t('financials.totalEquity'), 'totalStockholderEquity']
+    ]
+    App.dom.balanceBody.innerHTML = fields
+      .map(([label, key]) => {
+        const cells = balance.map(r => `<td>${App.utils.formatNum(r[key])}</td>`).join('')
+        return `<tr><td>${App.utils.escapeHtml(label)}</td>${cells}</tr>`
+      })
+      .join('')
+  }
+}
+
+function renderEtfDetails (data) {
+  App.dom.etfStatus.classList.add('hidden')
+  let hasAny = false
+
+  const expenseRatio =
+    data.fundProfile?.feesExpensesInvestment?.netExpRatio ??
+    data.fundProfile?.feesExpensesInvestment?.annualReportExpenseRatio ??
+    data.fundProfile?.feesExpensesInvestment?.grossExpRatio
+
+  if (expenseRatio != null && Number.isFinite(expenseRatio)) {
+    App.dom.etfExpenseValue.textContent = (Number(expenseRatio) * 100).toFixed(2) + '%'
+    App.dom.etfExpenseSection.classList.remove('hidden')
+    hasAny = true
+  } else {
+    App.dom.etfExpenseSection.classList.add('hidden')
+  }
+
+  const holdings = data.topHoldings?.holdings
+  if (Array.isArray(holdings) && holdings.length > 0) {
+    App.dom.etfHoldingsList.innerHTML = holdings
+      .slice(0, 15)
+      .map((h) => `<div class="etf-holding"><span class="etf-holding-symbol">${App.utils.escapeHtml(h.symbol || '')}</span> ${App.utils.escapeHtml(h.holdingName || '')} <span class="etf-holding-pct">${(Number(h.holdingPercent) * 100).toFixed(2)}%</span></div>`)
+      .join('')
+    App.dom.etfHoldingsSection.classList.remove('hidden')
+    hasAny = true
+  } else {
+    App.dom.etfHoldingsSection.classList.add('hidden')
+  }
+
+  if (!hasAny) {
+    App.dom.etfComingSoon.classList.remove('hidden')
+    App.dom.etfComingSoon.querySelector('p').textContent = App.t('etf.comingSoon')
+  } else {
+    App.dom.etfComingSoon.classList.add('hidden')
+  }
+}
+
+function showPanel (panel) {
+  App.dom.quotePanel.classList.toggle('hidden', panel !== 'quote')
+  App.dom.financialsPanel.classList.toggle('hidden', panel !== 'financials')
+  if (App.dom.edgarPanel) App.dom.edgarPanel.classList.toggle('hidden', panel !== 'edgar')
+  if (App.dom.etfPanel) App.dom.etfPanel.classList.toggle('hidden', panel !== 'etf')
+  App.dom.tabQuote.classList.toggle('active', panel === 'quote')
+  App.dom.tabFinancials.classList.toggle('active', panel === 'financials')
+  if (App.dom.tabEdgar) App.dom.tabEdgar.classList.toggle('active', panel === 'edgar')
+  if (App.dom.tabEtf) App.dom.tabEtf.classList.toggle('active', panel === 'etf')
+}
+
+App.dom.searchBtn.addEventListener('click', doSearch)
+App.dom.searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch() })
+
+App.dom.quickTiles.forEach((tile) => {
+  tile.addEventListener('click', () => {
+    const symbol = tile.getAttribute('data-symbol')
+    if (symbol) { App.dom.searchInput.value = symbol; selectSymbol(symbol) }
+  })
+})
+
+App.dom.etfTiles.forEach((tile) => {
+  tile.addEventListener('click', () => {
+    const symbol = tile.getAttribute('data-symbol')
+    if (symbol) { App.dom.searchInput.value = symbol; selectSymbol(symbol) }
+  })
+})
+
+App.dom.tabQuote.addEventListener('click', () => showPanel('quote'))
+
+App.dom.tabFinancials.addEventListener('click', () => {
+  showPanel('financials')
+  if (!App.state.currentSymbol) {
+    App.dom.financialsStatus.textContent = App.t('financials.selectHint')
+    return
+  }
+  if (App.state.financialsLoadedFor === App.state.currentSymbol) return
+
+  ;(async () => {
+    App.dom.financialsStatus.textContent = App.t('financials.loading')
+    App.dom.incomeHead.innerHTML = ''
+    App.dom.incomeBody.innerHTML = ''
+    App.dom.balanceHead.innerHTML = ''
+    App.dom.balanceBody.innerHTML = ''
+    try {
+      const finResult = await window.stockApi.getFinancials(App.state.currentSymbol)
+      if (finResult.ok && finResult.data) {
+        renderFinancials(finResult.data)
+        App.state.financialsLoadedFor = App.state.currentSymbol
+      } else {
+        App.dom.financialsStatus.textContent = App.utils.translateError(finResult.error) || App.t('error.financialsFailed')
+      }
+    } catch (err) {
+      App.dom.financialsStatus.textContent = App.t('error.financialsFailed')
+    }
+  })()
+})
+
+App.dom.subtabIncome.addEventListener('click', () => {
+  App.dom.subtabIncome.classList.add('active')
+  App.dom.subtabBalance.classList.remove('active')
+  App.dom.incomeTableWrap.classList.remove('hidden')
+  App.dom.balanceTableWrap.classList.add('hidden')
+})
+
+App.dom.subtabBalance.addEventListener('click', () => {
+  App.dom.subtabBalance.classList.add('active')
+  App.dom.subtabIncome.classList.remove('active')
+  App.dom.balanceTableWrap.classList.remove('hidden')
+  App.dom.incomeTableWrap.classList.add('hidden')
+})
+
+if (App.dom.tabEtf) {
+  App.dom.tabEtf.addEventListener('click', () => {
+    showPanel('etf')
+    if (!App.state.currentSymbol) {
+      App.dom.etfStatus.textContent = App.t('etf.selectHint')
+      App.dom.etfStatus.classList.remove('hidden')
+      return
+    }
+    if (App.state.etfDetailsLoadedFor === App.state.currentSymbol) return
+
+    ;(async () => {
+      App.dom.etfStatus.textContent = App.t('etf.loading')
+      App.dom.etfStatus.classList.remove('hidden')
+      App.dom.etfExpenseSection.classList.add('hidden')
+      App.dom.etfHoldingsSection.classList.add('hidden')
+      App.dom.etfComingSoon.classList.add('hidden')
+      try {
+        const res = await window.stockApi.getEtfDetails(App.state.currentSymbol)
+        if (res.ok && res.data) {
+          renderEtfDetails(res.data)
+          App.state.etfDetailsLoadedFor = App.state.currentSymbol
+        } else {
+          App.dom.etfStatus.textContent = App.utils.translateError(res.error) || App.t('error.etfFailed')
+          App.dom.etfComingSoon.classList.remove('hidden')
+          App.dom.etfComingSoon.querySelector('p').textContent = App.t('etf.comingSoon')
+        }
+      } catch (err) {
+        App.dom.etfStatus.textContent = App.t('error.etfFailed')
+        App.dom.etfComingSoon.classList.remove('hidden')
+      }
+    })()
+  })
+}
+
+if (App.dom.tabEdgar) {
+  App.dom.tabEdgar.addEventListener('click', () => {
+    showPanel('edgar')
+    if (App.state.currentSymbol && window.edgar) {
+      if (App.dom.edgarSearchBar) App.dom.edgarSearchBar.classList.add('hidden')
+      ;(async () => {
+        try {
+          await App.edgar.openEdgarForSymbol(App.state.currentSymbol)
+        } catch (err) {
+          App.utils.showError(App.utils.translateError(err.message) || App.t('error.secFilingsFailed'))
+        }
+      })()
+    } else if (App.dom.edgarSearchBar) {
+      App.dom.edgarSearchBar.classList.remove('hidden')
+    }
+  })
+}
+
+;(async function initApp () {
+  const i18n = await window.__i18nInit()
+  App.t = i18n.t
+  i18n.applyToPage()
+  if (App.dom.langSwitch) {
+    App.dom.langSwitch.value = i18n.getLocale ? i18n.getLocale() : 'en'
+    try {
+      const stored = window.localStorage.getItem('i18n.locale')
+      if (stored === 'zh' || stored === 'en') App.dom.langSwitch.value = stored
+    } catch (_) {}
+    App.dom.langSwitch.addEventListener('change', () => {
+      const loc = App.dom.langSwitch.value
+      if (loc !== 'en' && loc !== 'zh') return
+      i18n.setLocale(loc)
+      i18n.applyToPage()
+      updateThemeToggleLabel()
+      if (App.state.currentSymbol) selectSymbol(App.state.currentSymbol)
+      if (App.state.currentEdgarCompany) App.edgar.selectEdgarCompany(App.state.currentEdgarCompany)
+    })
+  }
+  applyThemeFromStorage()
+  App.dom.searchInput.value = 'NVDA'
+  selectSymbol('NVDA')
+})()
+})()
