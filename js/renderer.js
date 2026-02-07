@@ -153,6 +153,11 @@ async function doSearch () {
 async function selectSymbol (symbol) {
   if (!symbol) return
 
+  const normalized = String(symbol).trim().toUpperCase()
+  if (App.state.currentSymbol && String(App.state.currentSymbol).trim().toUpperCase() === normalized) {
+    return // already selected, do nothing
+  }
+
   // Remember which detail panel is currently active so we can preserve it
   if (App.dom.quotePanel && App.dom.financialsPanel && App.dom.edgarPanel && App.dom.etfPanel) {
     if (!App.dom.quotePanel.classList.contains('hidden')) {

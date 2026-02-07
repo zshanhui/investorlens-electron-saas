@@ -116,13 +116,13 @@ body.light-theme {
 .quick-tile {
   min-width: 90px;
   padding: 8px 10px;
-  border-radius: 999px;
+  border-radius: 15px;
   border: 1px solid var(--border);
   background: rgba(26, 35, 50, 0.9);
   color: var(--text);
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  /* align-items: flex-start; */
   cursor: pointer;
   font-size: 0.8rem;
   transition: background 0.15s, border-color 0.15s, transform 0.1s;
@@ -267,7 +267,7 @@ body.light-theme .quick-tile:hover {
 .detail-tab {
   border: none;
   background: transparent;
-  color: var(--muted);
+  color: #d0d7e2;
   padding: 6px 14px;
   border-radius: 999px;
   font-size: 0.85rem;

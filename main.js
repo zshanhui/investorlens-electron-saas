@@ -231,6 +231,50 @@ async function fetchFmpQuote (symbol) {
   }
 }
 
+/**
+ * Fetch FMP ratios-ttm (primary) or key-metrics-ttm (fallback) for P/E and P/S.
+ * ratios-ttm uses priceToEarningsRatioTTM, priceToSalesRatioTTM (works for TSLA, NVDA, etc.).
+ */
+async function fetchFmpKeyMetricsTtm (symbol) {
+  const sym = String(symbol || '').trim()
+  if (!sym) return { trailingPE: null, priceToSalesTrailing12Months: null }
+
+  // Primary: ratios-ttm (has priceToEarningsRatioTTM, priceToSalesRatioTTM; better coverage)
+  try {
+    const json = await callFmpJson('ratios-ttm', { symbol: sym })
+    const item = Array.isArray(json) && json.length > 0 ? json[0] : (json && typeof json === 'object' && !Array.isArray(json) ? json : null)
+    if (item) {
+      const trailingPE = item.priceToEarningsRatioTTM != null ? Number(item.priceToEarningsRatioTTM) : null
+      const priceToSalesTrailing12Months = item.priceToSalesRatioTTM != null ? Number(item.priceToSalesRatioTTM) : null
+      if (trailingPE != null || priceToSalesTrailing12Months != null) {
+        return { trailingPE, priceToSalesTrailing12Months }
+      }
+    }
+  } catch (err) {
+    console.warn('FMP ratios-ttm failed for', sym, err.message || err)
+  }
+
+  // Fallback: key-metrics-ttm
+  try {
+    const json = await callFmpJson('key-metrics-ttm', { symbol: sym })
+    const item = Array.isArray(json) && json.length > 0 ? json[0] : (json && typeof json === 'object' && !Array.isArray(json) ? json : null)
+    if (!item) return { trailingPE: null, priceToSalesTrailing12Months: null }
+
+    const trailingPE = item.peRatioTTM != null ? Number(item.peRatioTTM)
+      : item.peRatio != null ? Number(item.peRatio)
+      : null
+    const priceToSalesTrailing12Months = item.priceToSalesRatioTTM != null ? Number(item.priceToSalesRatioTTM)
+      : item.priceToSalesRatio != null ? Number(item.priceToSalesRatio)
+      : item.priceToSales != null ? Number(item.priceToSales)
+      : null
+
+    return { trailingPE, priceToSalesTrailing12Months }
+  } catch (err) {
+    console.warn('FMP key-metrics-ttm failed for', sym, err.message || err)
+    return { trailingPE: null, priceToSalesTrailing12Months: null }
+  }
+}
+
 async function fetchFmpHistorical (symbol, from, to) {
   const sym = String(symbol || '').trim()
   if (!sym) throw new Error('Missing symbol')
@@ -452,6 +496,14 @@ ipcMain.handle('stock:quote', async (_event, symbol) => {
   try {
     data = await fetchFmpQuote(sym)
     source = 'fmp'
+    // Enrich with P/E and P/S from key-metrics-ttm (quote endpoint often omits them)
+    try {
+      const metrics = await fetchFmpKeyMetricsTtm(sym)
+      if (metrics.trailingPE != null) data.trailingPE = metrics.trailingPE
+      if (metrics.priceToSalesTrailing12Months != null) data.priceToSalesTrailing12Months = metrics.priceToSalesTrailing12Months
+    } catch (err) {
+      console.warn('Failed to enrich quote with key-metrics-ttm for', sym, err.message || err)
+    }
   } catch (err) {
     console.warn('FMP quote failed, falling back to Yahoo Finance:', err.message)
     logStockEvent({
